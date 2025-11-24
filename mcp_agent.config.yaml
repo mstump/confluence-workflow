@@ -1,0 +1,7 @@
+apps:
+  - name: confluence_agent
+    app: confluence_agent.agent:app
+
+logger:
+  transports: [console]
+  level: info

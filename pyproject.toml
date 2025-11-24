@@ -1,0 +1,35 @@
+[project]
+name = "confluence-agent"
+version = "0.1.0"
+description = "An agentic workflow to update Confluence pages from markdown files."
+authors = [
+    {name = "Your Name", email = "you@example.com"},
+]
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "mcp-agent",
+    "atlassian-python-api",
+    "openai",
+    "pydantic-settings",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "trio",
+]
+
+[tool.setuptools]
+packages = ["confluence_agent"]
+package-dir = {"" = "src"}
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
