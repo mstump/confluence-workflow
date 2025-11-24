@@ -57,6 +57,8 @@ async def test_update_confluence_page_tool(
 
     mock_llm_provider = MagicMock()
     mock_llm_provider.merge_content.return_value = "<p>Merged</p>"
+    mock_llm_provider.reflect_and_correct.return_value = "<p>Corrected</p>"
+    mock_llm_provider.critique_content.return_value = "<p>Final</p>"
     mock_get_llm_provider.return_value = mock_llm_provider
 
     mock_temp_file = MagicMock()
@@ -84,8 +86,14 @@ async def test_update_confluence_page_tool(
     mock_llm_provider.merge_content.assert_called_once_with(
         "<p>Old</p>", "<h2>New</h2>"
     )
+    mock_llm_provider.reflect_and_correct.assert_called_once_with(
+        "<p>Old</p>", "<h2>New</h2>", "<p>Merged</p>"
+    )
+    mock_llm_provider.critique_content.assert_called_once_with(
+        "<p>Old</p>", "<h2>New</h2>", "<p>Corrected</p>"
+    )
     mock_confluence_instance.update_page_content.assert_called_once_with(
-        "12345", "Title", "<p>Merged</p>", 2
+        "12345", "Title", "<p>Final</p>", 2
     )
     assert result == f"Page 'Title' (ID: 12345) updated successfully to version 2."
 

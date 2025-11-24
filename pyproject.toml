@@ -17,7 +17,11 @@ dependencies = [
     "atlassian-python-api",
     "openai",
     "pydantic-settings",
+    "typer",
 ]
+
+[project.scripts]
+confluence-agent = "confluence_agent.cli:app"
 
 [project.optional-dependencies]
 dev = [

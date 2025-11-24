@@ -100,11 +100,37 @@ async def update_confluence_page(markdown_content: str, page_url: str) -> str:
                 model=settings.openai_model,
             )
             logger.info(f"LLM provider initialized: {settings.llm_provider}.")
+
+            # 5.1: Initial Merge
             logger.info("Merging new content with original using LLM.")
             merged_content = llm_provider.merge_content(
                 original_content, new_content_storage
             )
             logger.info("Content merge successful.")
+
+            # 5.2: Reflection Step
+            logger.info("Reflecting on and correcting the merged content.")
+            corrected_content = llm_provider.reflect_and_correct(
+                original_content, new_content_storage, merged_content
+            )
+            logger.info("Reflection and correction step complete.")
+
+            # 5.3: Critic Step
+            logger.info("Critiquing final content before update.")
+            final_content = llm_provider.critique_content(
+                original_content, new_content_storage, corrected_content
+            )
+
+            if final_content.strip().upper() == "REJECT":
+                logger.error(
+                    "Critic agent rejected the final content. Aborting update."
+                )
+                raise Exception(
+                    "Critic agent rejected the final content. Please review the logs."
+                )
+
+            merged_content = final_content
+            logger.info("Critic agent approved the final content.")
 
         # 6. Update the Confluence page
         new_version = version + 1

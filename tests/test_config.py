@@ -31,5 +31,12 @@ def test_settings_load_from_env() -> None:
 def test_settings_missing_variables() -> None:
     """Tests that a validation error is raised if required environment variables are missing."""
     with patch.dict(os.environ, {}, clear=True):
-        with pytest.raises(ValidationError):
-            Settings()
+        # Temporarily override model_config to prevent loading from .env file
+        original_config = Settings.model_config
+        Settings.model_config = {"env_file": None}
+        try:
+            with pytest.raises(ValidationError):
+                Settings()
+        finally:
+            # Restore original model_config
+            Settings.model_config = original_config
