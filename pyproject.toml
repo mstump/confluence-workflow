@@ -6,19 +6,19 @@ authors = [
     {name = "Matt Stump", email = "228171+mstump@users.noreply.github.com"},
 ]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "mcp-agent",
-    "atlassian-python-api",
-    "openai",
-    "pydantic-settings",
-    "typer",
-    "google-generativeai",
+    "mcp-agent==0.2.5",
+    "atlassian-python-api==4.0.7",
+    "openai==2.8.1",
+    "pydantic-settings==2.12.0",
+    "typer==0.20.0",
+    "google-genai>=1.10.0",
 ]
 
 [project.scripts]
@@ -26,11 +26,11 @@ confluence-agent = "confluence_agent.cli:app"
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
-    "black",
-    "trio",
-    "pre-commit",
-    "mypy",
+    "pytest==9.0.1",
+    "black==25.11.0",
+    "trio==0.32.0",
+    "pre-commit==4.5.0",
+    "mypy==1.18.2",
 ]
 
 [tool.setuptools]

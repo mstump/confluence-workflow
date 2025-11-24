@@ -21,6 +21,9 @@ class Settings(McpSettings):
     confluence_username: str
     confluence_api_token: str
 
+    # LLM Provider Configuration
+    llm_provider: str = "openai"
+
     # OpenAI Configuration
     openai: OpenAISettings = OpenAISettings(
         api_key="sk-my-openai-api-key", default_model="gpt-5-nano"

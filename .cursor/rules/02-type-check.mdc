@@ -9,8 +9,9 @@ alwaysApply: false
 After modifying Python code, validate it with `mypy` to catch type errors.
 
 **Command:**
+
 ```bash
-mypy .
+uv run mypy .
 ```
 
 **Configuration:**

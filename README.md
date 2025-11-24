@@ -30,7 +30,7 @@ attachments, and inline comments by leveraging an LLM.
     ```bash
     uv venv
     source .venv/bin/activate
-    uv pip install -e .[dev]
+    uv pip install -e '.[dev]'
     ```
 
 3. **Configure environment variables:**

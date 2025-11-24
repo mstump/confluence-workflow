@@ -9,6 +9,7 @@ alwaysApply: false
 After modifying Python code, always format it using `black` to ensure consistent code style.
 
 **Command:**
+
 ```bash
-black .
+uv run black .
 ```

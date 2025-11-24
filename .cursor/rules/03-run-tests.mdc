@@ -9,6 +9,7 @@ alwaysApply: false
 After any code modification, always run the full test suite using `pytest` to ensure that all tests pass and no regressions have been introduced.
 
 **Command:**
+
 ```bash
-pytest
+uv run pytest
 ```

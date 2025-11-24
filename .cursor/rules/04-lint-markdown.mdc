@@ -9,7 +9,9 @@ alwaysApply: false
 After modifying Markdown files, format and lint them using `markdownlint`. Fix all linting errors not automatically resolved by markdownlint.
 
 **Command:**
+
 ```bash
 markdownlint --fix .
 ```
+
 This command will automatically fix any linting issues that it can.
