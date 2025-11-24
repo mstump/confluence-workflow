@@ -12,7 +12,7 @@ You are an expert in Confluence's XML-based storage format. Your task is to inte
     -   `<ri:attachment>` (attachments)
     -   `<ac:inline-comment-marker>` (inline comments)
 6.  Do not add any explanatory text, preamble, or markdown formatting in your output.
-7.  The final output must be only the complete, merged content in valid Confluence storage format.
+7.  The final output must be only the complete, merged content in valid Confluence storage format, delivered as a JSON object with a single key: "content".
 
 **Original Content (Storage Format):**
 ```xml
@@ -24,7 +24,7 @@ You are an expert in Confluence's XML-based storage format. Your task is to inte
 {new_content_storage}
 ```
 
-**Merged Content (Storage Format only):**
+**Your JSON Response:**
 """
 
 REFLECTION_PROMPT = """
@@ -37,7 +37,7 @@ You are a quality assurance expert specializing in Confluence content. You have 
 3.  Ensure that no macros, attachments, or inline comments from the `ORIGINAL_CONTENT` have been lost or broken.
 4.  Correct any formatting issues, broken XML, or other errors in the `MERGED_CONTENT`.
 5.  If the merged content is already perfect, return it exactly as is.
-6.  Your final output must be only the corrected, complete content in valid Confluence storage format. Do not add any explanations.
+6.  Your final output must be only the corrected, complete content in valid Confluence storage format, delivered as a JSON object with a single key: "content". Do not add any explanations.
 
 **Original Content (Storage Format):**
 ```xml
@@ -54,7 +54,7 @@ You are a quality assurance expert specializing in Confluence content. You have 
 {merged_content}
 ```
 
-**Refined & Corrected Content (Storage Format only):**
+**Your JSON Response:**
 """
 
 CRITIC_PROMPT = """
@@ -64,8 +64,9 @@ You are the final gatekeeper for Confluence page updates. Your standards are exc
 
 1.  Rigorously check the `FINAL_PROPOSED_CONTENT` for any errors: broken XML, malformed macros, or inconsistencies.
 2.  Compare it against the `ORIGINAL_CONTENT` and `NEW_CONTENT` to ensure all changes were made correctly and nothing was lost.
-3.  If the content is perfect and ready for publication, respond with only the content itself, exactly as provided.
-4.  If there are any errors, no matter how small, respond with only the word "REJECT". Do not provide corrections or explanations. Your role is to be a strict gatekeeper.
+3.  If the content is perfect and ready for publication, your JSON response should be: `{{ "decision": "APPROVE", "content": "..." }}` where "..." is the final approved content.
+4.  If there are any errors, no matter how small, your JSON response should be: `{{ "decision": "REJECT" }}`. Do not include the content field.
+5.  Your response must be only the specified JSON object.
 
 **Original Content (Storage Format):**
 ```xml
@@ -82,5 +83,5 @@ You are the final gatekeeper for Confluence page updates. Your standards are exc
 {final_proposed_content}
 ```
 
-**Your Response (Either the content if perfect, or the word "REJECT"):**
+**Your JSON Response:**
 """

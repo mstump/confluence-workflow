@@ -5,6 +5,8 @@ from typing import Any
 import pytest
 from mcp_agent.app import MCPApp
 
+from confluence_agent.models import ConfluenceContent, CriticResponse
+
 # This is a placeholder for the actual agent implementation.
 # We are creating the file and a basic test structure.
 # The actual agent logic will be tested via an integration-style test.
@@ -56,15 +58,17 @@ async def test_update_confluence_page_tool(
     mock_markdown_to_confluence_storage.return_value = "<h2>New</h2>"
 
     mock_llm = AsyncMock()
-    mock_llm.generate_str.side_effect = [
-        "<p>Merged</p>",
-        "<p>Corrected</p>",
-        "<p>Final</p>",
+    mock_llm.name = "model"
+    mock_llm.provider = "openai"
+    mock_llm.generate_structured.side_effect = [
+        ConfluenceContent(content="<p>Merged</p>"),
+        ConfluenceContent(content="<p>Corrected</p>"),
+        CriticResponse(decision="APPROVE", content="<p>Final</p>"),
     ]
 
-    mock_llm_provider = MagicMock()
-    mock_llm_provider.return_value = mock_llm
-    mock_get_llm_provider.return_value = mock_llm_provider
+    mock_llm_provider_class = MagicMock()
+    mock_llm_provider_class.return_value = mock_llm
+    mock_get_llm_provider.return_value = mock_llm_provider_class
 
     mock_temp_file = MagicMock()
     mock_temp_file.__enter__.return_value.name = "/tmp/somefile.md"

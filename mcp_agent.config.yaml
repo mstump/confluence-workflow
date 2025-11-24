@@ -5,3 +5,8 @@ apps:
 logger:
   transports: [console]
   level: info
+
+otel:
+  enabled: true
+  exporters:
+    - console

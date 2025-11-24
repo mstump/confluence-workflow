@@ -3,21 +3,68 @@ import logging
 import tempfile
 import os
 import re
+import asyncio
+import functools
+from typing import Type, TypeVar
+from pydantic import BaseModel
+from pydantic_core import ValidationError
 
 from mcp_agent.agents.agent import Agent
+from mcp_agent.workflows.llm.augmented_llm import AugmentedLLM, RequestParams
 from confluence_agent.config import Settings
 from confluence_agent.confluence import ConfluenceClient
 from confluence_agent.pandoc import markdown_to_confluence_storage
-from confluence_agent.llm import get_llm_provider
+from confluence_agent.llm import get_llm_provider, get_token_count
 from confluence_agent.llm_prompts import MERGE_PROMPT, REFLECTION_PROMPT, CRITIC_PROMPT
+from confluence_agent.models import ConfluenceContent, CriticResponse
+
+# Determine log level from environment variable
+log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
+log_level = getattr(logging, log_level_str, logging.INFO)
 
 # Configure structured logging
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 app = MCPApp(name="confluence_agent")
+
+T = TypeVar("T", bound=BaseModel)
+
+
+class TokenMonitor:
+    async def on_token_update(self, node, usage):
+        logger.info(
+            f"[{node.name}] total_tokens={usage.total_tokens} prompt_tokens={usage.prompt_tokens} completion_tokens={usage.completion_tokens}"
+        )
+
+
+async def _generate_structured_with_retry(
+    llm: AugmentedLLM,
+    prompt: str,
+    response_model: Type[T],
+    max_retries: int = 3,
+    delay: float = 1.0,
+) -> T:
+    """
+    Calls llm.generate_structured with retry logic for handling ValidationErrors.
+    """
+    last_exception = None
+    for attempt in range(max_retries):
+        try:
+            return await llm.generate_structured(
+                message=prompt, response_model=response_model
+            )
+        except ValidationError as e:
+            logger.warning(
+                f"Validation failed on attempt {attempt + 1}/{max_retries}. Retrying in {delay}s. Error: {e}"
+            )
+            last_exception = e
+            await asyncio.sleep(delay)
+    if last_exception:
+        raise last_exception
+    raise Exception("Unknown error in _generate_structured_with_retry")
 
 
 def _is_content_empty(content: str) -> bool:
@@ -53,6 +100,7 @@ async def update_confluence_page(
     """
     try:
         logger.info("Starting Confluence page update process.")
+        logger.debug(f"Initial markdown content: {markdown_content}")
 
         # 1. Load configuration
         settings = Settings()
@@ -78,6 +126,7 @@ async def update_confluence_page(
 
             new_content_storage = markdown_to_confluence_storage(temp_file_path)
             logger.info("Markdown conversion successful.")
+            logger.debug(f"Converted new content storage: {new_content_storage}")
         finally:
             if temp_file_path:
                 os.remove(temp_file_path)
@@ -89,76 +138,117 @@ async def update_confluence_page(
             confluence_client.get_page_content_and_version(page_id)
         )
         logger.info(f"Successfully fetched page '{title}' (version {version}).")
+        logger.debug(f"Original page content: {original_content}")
 
         # 5. Use LLM to merge new content, or upload directly if page is empty
-        merged_content: str
+        final_content_storage: str
         if _is_content_empty(original_content):
             logger.info(
                 "Original page is empty. Bypassing LLM and using new content directly."
             )
-            merged_content = new_content_storage
+            final_content_storage = new_content_storage
         else:
             async with app.run() as agent_app:
-                llm_agent = Agent(
-                    name="llm_agent",
-                    instruction="You are an agent with access to LLMs.",
+                token_counter = agent_app.context.token_counter
+                monitor = TokenMonitor()
+                watch_id = await token_counter.watch(
+                    callback=monitor.on_token_update,
+                    node_type="llm",
+                    threshold=1_000,
+                    include_subtree=True,
                 )
-                async with llm_agent:
-                    LLMProviderClass = get_llm_provider(provider)
-                    llm = await llm_agent.attach_llm(LLMProviderClass)
+                try:
+                    llm_agent = Agent(
+                        name="llm_agent",
+                        instruction="You are an agent with access to LLMs.",
+                    )
+                    async with llm_agent:
+                        LLMProviderClass = get_llm_provider(provider)
 
-                    # 5.1: Initial Merge
-                    logger.info("Merging new content with original using LLM.")
-                    prompt = MERGE_PROMPT.format(
-                        original_content=original_content,
-                        new_content_storage=new_content_storage,
-                    )
-                    merged_content = await llm.generate_str(
-                        message=prompt,
-                    )
-                    logger.info("Content merge successful.")
-                    logger.debug(f"Merged content: {merged_content}")
-
-                    # 5.2: Reflection Step
-                    logger.info("Reflecting on and correcting the merged content.")
-                    prompt = REFLECTION_PROMPT.format(
-                        original_content=original_content,
-                        new_content_storage=new_content_storage,
-                        merged_content=merged_content,
-                    )
-                    corrected_content = await llm.generate_str(
-                        message=prompt,
-                    )
-                    logger.info("Reflection and correction step complete.")
-                    logger.debug(f"Corrected content: {corrected_content}")
-
-                    # 5.3: Critic Step
-                    logger.info("Critiquing final content before update.")
-                    prompt = CRITIC_PROMPT.format(
-                        original_content=original_content,
-                        new_content_storage=new_content_storage,
-                        final_proposed_content=corrected_content,
-                    )
-                    final_content = await llm.generate_str(
-                        message=prompt,
-                    )
-
-                    if final_content.strip().upper() == "REJECT":
-                        logger.error(
-                            "Critic agent rejected the final content. Aborting update."
+                        # Calculate token count for scaling max_tokens
+                        content_to_merge = original_content + new_content_storage
+                        content_token_count = await get_token_count(
+                            provider, content_to_merge
                         )
-                        raise Exception(
-                            "Critic agent rejected the final content. Please review the logs."
+                        scaled_max_tokens = int(content_token_count * 1.5) + 1024
+                        logger.info(f"Scaled max_tokens to {scaled_max_tokens}")
+
+                        ConfiguredLLMProvider = functools.partial(
+                            LLMProviderClass,
+                            default_request_params=RequestParams(
+                                maxTokens=scaled_max_tokens
+                            ),
                         )
 
-                    merged_content = final_content
-                    logger.info("Critic agent approved the final content.")
+                        llm = await llm_agent.attach_llm(ConfiguredLLMProvider)
+
+                        # 5.1: Initial Merge
+                        logger.info("Merging new content with original using LLM.")
+                        prompt = MERGE_PROMPT.format(
+                            original_content=original_content,
+                            new_content_storage=new_content_storage,
+                        )
+                        merged_response = await _generate_structured_with_retry(
+                            llm, prompt, ConfluenceContent
+                        )
+                        merged_content = merged_response.content
+                        logger.info("Content merge successful.")
+                        logger.debug(f"Merged content: {merged_content}")
+
+                        # 5.2: Reflection Step
+                        logger.info("Reflecting on and correcting the merged content.")
+                        prompt = REFLECTION_PROMPT.format(
+                            original_content=original_content,
+                            new_content_storage=new_content_storage,
+                            merged_content=merged_content,
+                        )
+                        corrected_response = await _generate_structured_with_retry(
+                            llm, prompt, ConfluenceContent
+                        )
+                        corrected_content = corrected_response.content
+                        logger.info("Reflection and correction step complete.")
+                        logger.debug(f"Corrected content: {corrected_content}")
+
+                        # 5.3: Critic Step
+                        logger.info("Critiquing final content before update.")
+                        prompt = CRITIC_PROMPT.format(
+                            original_content=original_content,
+                            new_content_storage=new_content_storage,
+                            final_proposed_content=corrected_content,
+                        )
+                        critic_response = await _generate_structured_with_retry(
+                            llm, prompt, CriticResponse
+                        )
+
+                        if critic_response.decision == "REJECT":
+                            logger.error(
+                                "Critic agent rejected the final content. Aborting update."
+                            )
+                            raise Exception(
+                                "Critic agent rejected the final content. Please review the logs."
+                            )
+
+                        if critic_response.content is None:
+                            logger.error(
+                                "Critic agent approved but did not provide content. Aborting update."
+                            )
+                            raise Exception(
+                                "Critic agent approved but did not provide content."
+                            )
+
+                        final_content_storage = critic_response.content
+                        logger.info("Critic agent approved the final content.")
+                        logger.debug(
+                            f"Final content from critic: {final_content_storage}"
+                        )
+                finally:
+                    await token_counter.unwatch(watch_id)
 
         # 6. Update the Confluence page
         new_version = version + 1
         logger.info(f"Updating page ID {page_id} to version {new_version}.")
         confluence_client.update_page_content(
-            page_id, title, merged_content, new_version
+            page_id, title, final_content_storage, new_version
         )
         logger.info("Page update successful.")
 
