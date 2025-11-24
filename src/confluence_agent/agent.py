@@ -13,7 +13,7 @@ from mcp_agent.agents.agent import Agent
 from mcp_agent.workflows.llm.augmented_llm import AugmentedLLM, RequestParams
 from confluence_agent.config import Settings
 from confluence_agent.confluence import ConfluenceClient
-from confluence_agent.pandoc import markdown_to_confluence_storage
+from confluence_agent.md2conf import markdown_to_confluence_storage
 from confluence_agent.llm import get_llm_provider, get_token_count
 from confluence_agent.llm_prompts import MERGE_PROMPT, REFLECTION_PROMPT, CRITIC_PROMPT
 from confluence_agent.models import ConfluenceContent, CriticResponse
@@ -116,20 +116,9 @@ async def update_confluence_page(
 
         # 3. Convert markdown to Confluence storage format
         logger.info("Converting markdown content to Confluence storage format.")
-        temp_file_path = ""
-        try:
-            with tempfile.NamedTemporaryFile(
-                mode="w", delete=False, suffix=".md", encoding="utf-8"
-            ) as temp_file:
-                temp_file.write(markdown_content)
-                temp_file_path = temp_file.name
-
-            new_content_storage = markdown_to_confluence_storage(temp_file_path)
-            logger.info("Markdown conversion successful.")
-            logger.debug(f"Converted new content storage: {new_content_storage}")
-        finally:
-            if temp_file_path:
-                os.remove(temp_file_path)
+        new_content_storage = markdown_to_confluence_storage(markdown_content)
+        logger.info("Markdown conversion successful.")
+        logger.debug(f"Converted new content storage: {new_content_storage}")
 
         # 4. Get current page content from Confluence
         page_id = ConfluenceClient._get_page_id_from_url(page_url)

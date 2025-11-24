@@ -1,7 +1,7 @@
 ---
 description: "Lint Markdown files with markdownlint after modifying Markdown files."
 globs: ["**/*.md"]
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Lint Markdown Files

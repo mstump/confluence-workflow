@@ -20,6 +20,7 @@ dependencies = [
     "typer==0.20.0",
     "google-genai>=1.10.0",
     "tiktoken==0.8.0",
+    "markdown-to-confluence",
 ]
 
 [project.scripts]

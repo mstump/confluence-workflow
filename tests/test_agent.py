@@ -22,12 +22,8 @@ def app_instance() -> MCPApp:
 @patch("confluence_agent.agent.ConfluenceClient", autospec=True)
 @patch("confluence_agent.agent.markdown_to_confluence_storage")
 @patch("confluence_agent.agent.get_llm_provider")
-@patch("confluence_agent.agent.tempfile.NamedTemporaryFile")
-@patch("confluence_agent.agent.os.remove")
 @pytest.mark.anyio
 async def test_update_confluence_page_tool(
-    mock_os_remove: MagicMock,
-    mock_tempfile: MagicMock,
     mock_get_llm_provider: MagicMock,
     mock_markdown_to_confluence_storage: MagicMock,
     mock_confluence_client: MagicMock,
@@ -70,10 +66,6 @@ async def test_update_confluence_page_tool(
     mock_llm_provider_class.return_value = mock_llm
     mock_get_llm_provider.return_value = mock_llm_provider_class
 
-    mock_temp_file = MagicMock()
-    mock_temp_file.__enter__.return_value.name = "/tmp/somefile.md"
-    mock_tempfile.return_value = mock_temp_file
-
     from confluence_agent import agent
 
     markdown_content = "# New Content"
@@ -85,9 +77,7 @@ async def test_update_confluence_page_tool(
     assert "success" in result.lower()
 
     mock_confluence_client._get_page_id_from_url.assert_called_once_with(page_url)
-    mock_temp_file.__enter__().write.assert_called_once_with(markdown_content)
-    mock_markdown_to_confluence_storage.assert_called_once_with("/tmp/somefile.md")
-    mock_os_remove.assert_called_once_with("/tmp/somefile.md")
+    mock_markdown_to_confluence_storage.assert_called_once_with(markdown_content)
 
     mock_confluence_instance.get_page_content_and_version.assert_called_once_with(
         "12345"
@@ -104,12 +94,8 @@ async def test_update_confluence_page_tool(
 @patch("confluence_agent.agent.ConfluenceClient", autospec=True)
 @patch("confluence_agent.agent.markdown_to_confluence_storage")
 @patch("confluence_agent.agent.get_llm_provider")
-@patch("confluence_agent.agent.tempfile.NamedTemporaryFile")
-@patch("confluence_agent.agent.os.remove")
 @pytest.mark.anyio
 async def test_update_confluence_page_tool_empty_page(
-    mock_os_remove: MagicMock,
-    mock_tempfile: MagicMock,
     mock_get_llm_provider: MagicMock,
     mock_markdown_to_confluence_storage: MagicMock,
     mock_confluence_client: MagicMock,
@@ -138,10 +124,6 @@ async def test_update_confluence_page_tool_empty_page(
     mock_llm_provider = MagicMock()
     mock_get_llm_provider.return_value = mock_llm_provider
 
-    mock_temp_file = MagicMock()
-    mock_temp_file.__enter__.return_value.name = "/tmp/somefile.md"
-    mock_tempfile.return_value = mock_temp_file
-
     from confluence_agent import agent
 
     markdown_content = "# New Content"
@@ -160,12 +142,8 @@ async def test_update_confluence_page_tool_empty_page(
 @patch("confluence_agent.agent.ConfluenceClient", autospec=True)
 @patch("confluence_agent.agent.markdown_to_confluence_storage")
 @patch("confluence_agent.agent.get_llm_provider")
-@patch("confluence_agent.agent.tempfile.NamedTemporaryFile")
-@patch("confluence_agent.agent.os.remove")
 @pytest.mark.anyio
 async def test_update_confluence_page_tool_empty_p_tag(
-    mock_os_remove: MagicMock,
-    mock_tempfile: MagicMock,
     mock_get_llm_provider: MagicMock,
     mock_markdown_to_confluence_storage: MagicMock,
     mock_confluence_client: MagicMock,
@@ -193,10 +171,6 @@ async def test_update_confluence_page_tool_empty_p_tag(
 
     mock_llm_provider = MagicMock()
     mock_get_llm_provider.return_value = mock_llm_provider
-
-    mock_temp_file = MagicMock()
-    mock_temp_file.__enter__.return_value.name = "/tmp/somefile.md"
-    mock_tempfile.return_value = mock_temp_file
 
     from confluence_agent import agent
 

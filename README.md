@@ -12,11 +12,12 @@ attachments, and inline comments by leveraging an LLM.
 
 ## Prerequisites
 
-- Python 3.9+
-- [uv](https://github.com/astral-sh/uv) package manager
-- [pandoc](https://pandoc.org/installing.html)
+* Python 3.10+
+* An active virtual environment (e.g., venv, conda).
+* Access to a Confluence Cloud instance with API token credentials.
+* An LLM provider API key (e.g., OpenAI, Anthropic, Google).
 
-## Setup
+### Installation
 
 1. **Clone the repository:**
 
