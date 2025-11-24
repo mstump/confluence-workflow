@@ -4,10 +4,12 @@ import tempfile
 import os
 import re
 
+from mcp_agent.agents.agent import Agent
 from confluence_agent.config import Settings
 from confluence_agent.confluence import ConfluenceClient
 from confluence_agent.pandoc import markdown_to_confluence_storage
 from confluence_agent.llm import get_llm_provider
+from confluence_agent.llm_prompts import MERGE_PROMPT, REFLECTION_PROMPT, CRITIC_PROMPT
 
 # Configure structured logging
 logging.basicConfig(
@@ -36,7 +38,9 @@ def _is_content_empty(content: str) -> bool:
 
 
 @app.tool()
-async def update_confluence_page(markdown_content: str, page_url: str) -> str:
+async def update_confluence_page(
+    markdown_content: str, page_url: str, provider: str
+) -> str:
     """
     Updates a Confluence page with the content of a markdown string.
 
@@ -94,43 +98,61 @@ async def update_confluence_page(markdown_content: str, page_url: str) -> str:
             )
             merged_content = new_content_storage
         else:
-            llm_provider = get_llm_provider(
-                settings.llm_provider,
-                api_key=settings.openai_api_key,
-                model=settings.openai_model,
-            )
-            logger.info(f"LLM provider initialized: {settings.llm_provider}.")
-
-            # 5.1: Initial Merge
-            logger.info("Merging new content with original using LLM.")
-            merged_content = llm_provider.merge_content(
-                original_content, new_content_storage
-            )
-            logger.info("Content merge successful.")
-
-            # 5.2: Reflection Step
-            logger.info("Reflecting on and correcting the merged content.")
-            corrected_content = llm_provider.reflect_and_correct(
-                original_content, new_content_storage, merged_content
-            )
-            logger.info("Reflection and correction step complete.")
-
-            # 5.3: Critic Step
-            logger.info("Critiquing final content before update.")
-            final_content = llm_provider.critique_content(
-                original_content, new_content_storage, corrected_content
-            )
-
-            if final_content.strip().upper() == "REJECT":
-                logger.error(
-                    "Critic agent rejected the final content. Aborting update."
+            async with app.run() as agent_app:
+                llm_agent = Agent(
+                    name="llm_agent",
+                    instruction="You are an agent with access to LLMs.",
                 )
-                raise Exception(
-                    "Critic agent rejected the final content. Please review the logs."
-                )
+                async with llm_agent:
+                    LLMProviderClass = get_llm_provider(provider)
+                    llm = await llm_agent.attach_llm(LLMProviderClass)
 
-            merged_content = final_content
-            logger.info("Critic agent approved the final content.")
+                    # 5.1: Initial Merge
+                    logger.info("Merging new content with original using LLM.")
+                    prompt = MERGE_PROMPT.format(
+                        original_content=original_content,
+                        new_content_storage=new_content_storage,
+                    )
+                    merged_content = await llm.generate_str(
+                        message=prompt,
+                    )
+                    logger.info("Content merge successful.")
+                    logger.debug(f"Merged content: {merged_content}")
+
+                    # 5.2: Reflection Step
+                    logger.info("Reflecting on and correcting the merged content.")
+                    prompt = REFLECTION_PROMPT.format(
+                        original_content=original_content,
+                        new_content_storage=new_content_storage,
+                        merged_content=merged_content,
+                    )
+                    corrected_content = await llm.generate_str(
+                        message=prompt,
+                    )
+                    logger.info("Reflection and correction step complete.")
+                    logger.debug(f"Corrected content: {corrected_content}")
+
+                    # 5.3: Critic Step
+                    logger.info("Critiquing final content before update.")
+                    prompt = CRITIC_PROMPT.format(
+                        original_content=original_content,
+                        new_content_storage=new_content_storage,
+                        final_proposed_content=corrected_content,
+                    )
+                    final_content = await llm.generate_str(
+                        message=prompt,
+                    )
+
+                    if final_content.strip().upper() == "REJECT":
+                        logger.error(
+                            "Critic agent rejected the final content. Aborting update."
+                        )
+                        raise Exception(
+                            "Critic agent rejected the final content. Please review the logs."
+                        )
+
+                    merged_content = final_content
+                    logger.info("Critic agent approved the final content.")
 
         # 6. Update the Confluence page
         new_version = version + 1

@@ -13,9 +13,8 @@ def test_settings_load_from_env() -> None:
         "CONFLUENCE_URL": "https://test.atlassian.net",
         "CONFLUENCE_USERNAME": "testuser",
         "CONFLUENCE_API_TOKEN": "testtoken",
-        "LLM_PROVIDER": "openai",
-        "OPENAI_API_KEY": "testkey",
-        "OPENAI_MODEL": "gpt-4",
+        "OPENAI__API_KEY": "testkey",
+        "OPENAI__DEFAULT_MODEL": "gpt-4",
     }
 
     with patch.dict(os.environ, env_vars):
@@ -23,9 +22,8 @@ def test_settings_load_from_env() -> None:
         assert settings.confluence_url == "https://test.atlassian.net"
         assert settings.confluence_username == "testuser"
         assert settings.confluence_api_token == "testtoken"
-        assert settings.llm_provider == "openai"
-        assert settings.openai_api_key == "testkey"
-        assert settings.openai_model == "gpt-4"
+        assert settings.openai.api_key == "testkey"
+        assert settings.openai.default_model == "gpt-4"
 
 
 def test_settings_missing_variables() -> None:

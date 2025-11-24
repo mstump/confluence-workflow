@@ -1,5 +1,5 @@
 import anyio
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 from typing import Any
 
 import pytest
@@ -55,10 +55,15 @@ async def test_update_confluence_page_tool(
 
     mock_markdown_to_confluence_storage.return_value = "<h2>New</h2>"
 
+    mock_llm = AsyncMock()
+    mock_llm.generate_str.side_effect = [
+        "<p>Merged</p>",
+        "<p>Corrected</p>",
+        "<p>Final</p>",
+    ]
+
     mock_llm_provider = MagicMock()
-    mock_llm_provider.merge_content.return_value = "<p>Merged</p>"
-    mock_llm_provider.reflect_and_correct.return_value = "<p>Corrected</p>"
-    mock_llm_provider.critique_content.return_value = "<p>Final</p>"
+    mock_llm_provider.return_value = mock_llm
     mock_get_llm_provider.return_value = mock_llm_provider
 
     mock_temp_file = MagicMock()
@@ -70,7 +75,10 @@ async def test_update_confluence_page_tool(
     markdown_content = "# New Content"
     page_url = "https://fake.url/wiki/spaces/SPACE/pages/12345/Test+Page"
 
-    result = await agent.update_confluence_page(markdown_content, page_url)
+    result = await agent.update_confluence_page(
+        markdown_content, page_url, provider="openai"
+    )
+    assert "success" in result.lower()
 
     mock_confluence_client._get_page_id_from_url.assert_called_once_with(page_url)
     mock_temp_file.__enter__().write.assert_called_once_with(markdown_content)
@@ -80,18 +88,8 @@ async def test_update_confluence_page_tool(
     mock_confluence_instance.get_page_content_and_version.assert_called_once_with(
         "12345"
     )
-    mock_get_llm_provider.assert_called_once_with(
-        "openai", api_key="key", model="model"
-    )
-    mock_llm_provider.merge_content.assert_called_once_with(
-        "<p>Old</p>", "<h2>New</h2>"
-    )
-    mock_llm_provider.reflect_and_correct.assert_called_once_with(
-        "<p>Old</p>", "<h2>New</h2>", "<p>Merged</p>"
-    )
-    mock_llm_provider.critique_content.assert_called_once_with(
-        "<p>Old</p>", "<h2>New</h2>", "<p>Corrected</p>"
-    )
+    mock_get_llm_provider.assert_called_once_with("openai")
+
     mock_confluence_instance.update_page_content.assert_called_once_with(
         "12345", "Title", "<p>Final</p>", 2
     )
@@ -145,7 +143,7 @@ async def test_update_confluence_page_tool_empty_page(
     markdown_content = "# New Content"
     page_url = "https://fake.url/wiki/spaces/SPACE/pages/12345/Empty+Page"
 
-    await agent.update_confluence_page(markdown_content, page_url)
+    await agent.update_confluence_page(markdown_content, page_url, provider="openai")
 
     mock_get_llm_provider.assert_not_called()
     mock_llm_provider.merge_content.assert_not_called()
@@ -201,7 +199,7 @@ async def test_update_confluence_page_tool_empty_p_tag(
     markdown_content = "# New Content"
     page_url = "https://fake.url/wiki/spaces/SPACE/pages/12345/Emptyish+Page"
 
-    await agent.update_confluence_page(markdown_content, page_url)
+    await agent.update_confluence_page(markdown_content, page_url, provider="openai")
 
     mock_llm_provider.merge_content.assert_not_called()
     mock_confluence_instance.update_page_content.assert_called_once_with(

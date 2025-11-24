@@ -18,6 +18,7 @@ dependencies = [
     "openai",
     "pydantic-settings",
     "typer",
+    "google-generativeai",
 ]
 
 [project.scripts]

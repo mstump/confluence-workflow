@@ -75,7 +75,12 @@ class ConfluenceClient:
             raise ApiError(f"Failed to get page content for page ID {page_id}: {e}")
 
     def update_page_content(
-        self, page_id: str, title: str, new_content: str, new_version: int
+        self,
+        page_id: str,
+        title: str,
+        new_content: str,
+        new_version: int,
+        representation: str = "storage",
     ) -> None:
         """
         Updates the content of a Confluence page.
@@ -83,11 +88,12 @@ class ConfluenceClient:
         Args:
             page_id: The ID of the page to update.
             title: The title of the page.
-            new_content: The new content in storage format.
+            new_content: The new content for the page.
             new_version: The new version number for the page.
+            representation: The content representation format, either "storage" or "wiki". Defaults to "storage".
 
         Raises:
-            ConfluenceError: If the API call fails.
+            ApiError: If the API call fails.
         """
         try:
             self.confluence.update_page(
@@ -96,7 +102,7 @@ class ConfluenceClient:
                 body=new_content,
                 parent_id=None,
                 type="page",
-                representation="storage",
+                representation=representation,
                 minor_edit=True,
             )
         except ApiError as e:

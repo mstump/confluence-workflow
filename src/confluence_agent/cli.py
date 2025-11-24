@@ -23,6 +23,12 @@ def update(
     page_url: str = typer.Argument(
         ..., help="The URL of the Confluence page to update."
     ),
+    provider: str = typer.Option(
+        "openai",
+        "--provider",
+        "-p",
+        help="The LLM provider to use ('openai' or 'google').",
+    ),
 ) -> None:
     """
     Updates a Confluence page with the content of a markdown file.
@@ -37,10 +43,10 @@ def update(
         )
         raise typer.Exit(code=1)
 
-    console.print(f"Updating Confluence page: {page_url}")
+    console.print(f"Updating Confluence page: {page_url} using {provider}")
 
     async def run_update() -> None:
-        result = await update_confluence_page(markdown_content, page_url)
+        result = await update_confluence_page(markdown_content, page_url, provider)
         if "Error" in result:
             console.print(f"[bold red]Failed to update page:[/bold red] {result}")
             raise typer.Exit(code=1)
