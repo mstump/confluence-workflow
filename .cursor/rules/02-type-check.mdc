@@ -1,0 +1,17 @@
+---
+description: "Validate type checking with mypy after modifying Python files."
+globs: ["**/*.py"]
+alwaysApply: false
+---
+
+# Validate Type Checking
+
+After modifying Python code, validate it with `mypy` to catch type errors.
+
+**Command:**
+```bash
+mypy .
+```
+
+**Configuration:**
+`mypy` is configured in `pyproject.toml`.

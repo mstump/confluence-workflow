@@ -7,7 +7,7 @@ from confluence_agent.pandoc import markdown_to_confluence_storage
 
 
 @patch("subprocess.run")
-def test_markdown_to_confluence_storage_success(mock_subprocess_run):
+def test_markdown_to_confluence_storage_success(mock_subprocess_run: MagicMock) -> None:
     """Tests successful conversion of a markdown file to Confluence storage format."""
     mock_process = MagicMock()
     mock_process.returncode = 0
@@ -31,7 +31,9 @@ def test_markdown_to_confluence_storage_success(mock_subprocess_run):
 
 
 @patch("subprocess.run")
-def test_markdown_to_confluence_storage_pandoc_not_found(mock_subprocess_run):
+def test_markdown_to_confluence_storage_pandoc_not_found(
+    mock_subprocess_run: MagicMock,
+) -> None:
     """Tests that a FileNotFoundError is raised if pandoc is not installed."""
     mock_subprocess_run.side_effect = FileNotFoundError("pandoc not found")
 
@@ -40,7 +42,9 @@ def test_markdown_to_confluence_storage_pandoc_not_found(mock_subprocess_run):
 
 
 @patch("subprocess.run")
-def test_markdown_to_confluence_storage_conversion_error(mock_subprocess_run):
+def test_markdown_to_confluence_storage_conversion_error(
+    mock_subprocess_run: MagicMock,
+) -> None:
     """Tests that a CalledProcessError is raised on a pandoc conversion error."""
     mock_process = MagicMock()
     mock_process.returncode = 1

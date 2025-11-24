@@ -1,3 +1,4 @@
+from typing import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -7,7 +8,7 @@ from confluence_agent.confluence import ConfluenceClient
 
 
 @pytest.fixture
-def mock_confluence_api():
+def mock_confluence_api() -> Generator[MagicMock, None, None]:
     """Fixture to create a mock Confluence API object."""
     with patch("confluence_agent.confluence.Confluence") as mock_confluence_class:
         instance = MagicMock()
@@ -15,7 +16,7 @@ def mock_confluence_api():
         yield instance
 
 
-def test_confluence_client_initialization(mock_confluence_api):
+def test_confluence_client_initialization(mock_confluence_api: MagicMock) -> None:
     """Tests that the Confluence client initializes the API wrapper correctly."""
     ConfluenceClient(
         url="https://test.atlassian.net",
@@ -34,7 +35,7 @@ def test_confluence_client_initialization(mock_confluence_api):
     )
 
 
-def test_get_page_id_from_url():
+def test_get_page_id_from_url() -> None:
     """Tests the extraction of the page ID from various Confluence URL formats."""
     urls = {
         "https://domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Page+Title": "12345",
@@ -45,13 +46,13 @@ def test_get_page_id_from_url():
         assert ConfluenceClient._get_page_id_from_url(url) == expected_id
 
 
-def test_get_page_id_from_url_invalid():
+def test_get_page_id_from_url_invalid() -> None:
     """Tests that an invalid Confluence URL raises a ValueError."""
     with pytest.raises(ValueError, match="Could not extract page ID from URL"):
         ConfluenceClient._get_page_id_from_url("https://invalid.url")
 
 
-def test_get_page_content_and_version_success(mock_confluence_api):
+def test_get_page_content_and_version_success(mock_confluence_api: MagicMock) -> None:
     """Tests successfully fetching page content and version."""
     mock_confluence_api.get_page_by_id.return_value = {
         "body": {"storage": {"value": "<p>Content</p>"}},
@@ -71,7 +72,7 @@ def test_get_page_content_and_version_success(mock_confluence_api):
     assert title == "Test Page"
 
 
-def test_get_page_content_and_version_failure(mock_confluence_api):
+def test_get_page_content_and_version_failure(mock_confluence_api: MagicMock) -> None:
     """Tests failure in fetching page content."""
     mock_confluence_api.get_page_by_id.side_effect = ApiError("API Error")
     client = ConfluenceClient("https://test.atlassian.net", "user", "token")
@@ -81,7 +82,7 @@ def test_get_page_content_and_version_failure(mock_confluence_api):
         client.get_page_content_and_version("12345")
 
 
-def test_update_page_content_success(mock_confluence_api):
+def test_update_page_content_success(mock_confluence_api: MagicMock) -> None:
     """Tests successfully updating a page's content."""
     client = ConfluenceClient("https://test.atlassian.net", "user", "token")
     client.confluence = mock_confluence_api
@@ -98,7 +99,7 @@ def test_update_page_content_success(mock_confluence_api):
     )
 
 
-def test_update_page_content_failure(mock_confluence_api):
+def test_update_page_content_failure(mock_confluence_api: MagicMock) -> None:
     """Tests failure in updating a page's content."""
     mock_confluence_api.update_page.side_effect = ApiError("API Error")
     client = ConfluenceClient("https://test.atlassian.net", "user", "token")

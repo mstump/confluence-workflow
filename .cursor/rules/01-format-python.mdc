@@ -1,0 +1,14 @@
+---
+description: "Format Python code with black after modifying Python files."
+globs: ["**/*.py"]
+alwaysApply: false
+---
+
+# Format Python Code
+
+After modifying Python code, always format it using `black` to ensure consistent code style.
+
+**Command:**
+```bash
+black .
+```

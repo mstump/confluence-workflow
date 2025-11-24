@@ -3,7 +3,7 @@ name = "confluence-agent"
 version = "0.1.0"
 description = "An agentic workflow to update Confluence pages from markdown files."
 authors = [
-    {name = "Your Name", email = "you@example.com"},
+    {name = "Matt Stump", email = "228171+mstump@users.noreply.github.com"},
 ]
 readme = "README.md"
 requires-python = ">=3.9"
@@ -24,6 +24,8 @@ dev = [
     "pytest",
     "black",
     "trio",
+    "pre-commit",
+    "mypy",
 ]
 
 [tool.setuptools]
@@ -33,3 +35,19 @@ package-dir = {"" = "src"}
 [tool.black]
 line-length = 88
 target-version = ['py39']
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+strict = true
+
+[[tool.mypy.overrides]]
+module = [
+    "pydantic_settings",
+    "mcp_agent.*",
+    "atlassian.*",
+    "pytest",
+    "anyio"
+]
+ignore_missing_imports = true

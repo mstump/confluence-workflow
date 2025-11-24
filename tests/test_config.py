@@ -7,7 +7,7 @@ import pytest
 from confluence_agent.config import Settings
 
 
-def test_settings_load_from_env():
+def test_settings_load_from_env() -> None:
     """Tests that settings are correctly loaded from environment variables."""
     env_vars = {
         "CONFLUENCE_URL": "https://test.atlassian.net",
@@ -28,7 +28,7 @@ def test_settings_load_from_env():
         assert settings.openai_model == "gpt-4"
 
 
-def test_settings_missing_variables():
+def test_settings_missing_variables() -> None:
     """Tests that a validation error is raised if required environment variables are missing."""
     with patch.dict(os.environ, {}, clear=True):
         with pytest.raises(ValidationError):

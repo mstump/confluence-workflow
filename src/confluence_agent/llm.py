@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 import openai
 from confluence_agent.llm_prompts import MERGE_PROMPT
@@ -49,7 +50,7 @@ class UnsupportedProviderError(Exception):
     pass
 
 
-def get_llm_provider(provider_name: str, **kwargs) -> LLMProvider:
+def get_llm_provider(provider_name: str, **kwargs: Any) -> LLMProvider:
     """
     Factory function to get an instance of an LLM provider.
 

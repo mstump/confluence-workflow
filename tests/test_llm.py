@@ -15,20 +15,20 @@ class MockLLMProvider(LLMProvider):
         return "merged"
 
 
-def test_get_llm_provider_openai():
+def test_get_llm_provider_openai() -> None:
     """Tests that the correct provider is returned for 'openai'."""
     provider = get_llm_provider("openai", api_key="test_key", model="gpt-4")
     assert isinstance(provider, OpenAIProvider)
 
 
-def test_get_llm_provider_unsupported():
+def test_get_llm_provider_unsupported() -> None:
     """Tests that an error is raised for an unsupported provider."""
     with pytest.raises(UnsupportedProviderError):
         get_llm_provider("unsupported_provider")
 
 
 @patch("openai.OpenAI")
-def test_openai_provider_merge_content(mock_openai_class):
+def test_openai_provider_merge_content(mock_openai_class: MagicMock) -> None:
     """Tests the merge_content method of the OpenAIProvider."""
     mock_openai_instance = MagicMock()
     mock_chat_completion = MagicMock()

@@ -1,5 +1,6 @@
 import anyio
 from unittest.mock import MagicMock, patch
+from typing import Any
 
 import pytest
 from mcp_agent.app import MCPApp
@@ -10,7 +11,7 @@ from mcp_agent.app import MCPApp
 
 
 @pytest.fixture
-def app_instance():
+def app_instance() -> MCPApp:
     """Fixture to create an instance of the MCPApp for testing."""
     return MCPApp(name="test_confluence_agent")
 
@@ -23,14 +24,14 @@ def app_instance():
 @patch("confluence_agent.agent.os.remove")
 @pytest.mark.anyio
 async def test_update_confluence_page_tool(
-    mock_os_remove,
-    mock_tempfile,
-    mock_get_llm_provider,
-    mock_markdown_to_confluence_storage,
-    mock_confluence_client,
-    mock_settings,
-    app_instance,
-):
+    mock_os_remove: MagicMock,
+    mock_tempfile: MagicMock,
+    mock_get_llm_provider: MagicMock,
+    mock_markdown_to_confluence_storage: MagicMock,
+    mock_confluence_client: MagicMock,
+    mock_settings: MagicMock,
+    app_instance: MCPApp,
+) -> None:
     """
     Integration-style test for the update_confluence_page tool.
     This test mocks all external dependencies to verify the orchestration logic.
@@ -97,14 +98,14 @@ async def test_update_confluence_page_tool(
 @patch("confluence_agent.agent.os.remove")
 @pytest.mark.anyio
 async def test_update_confluence_page_tool_empty_page(
-    mock_os_remove,
-    mock_tempfile,
-    mock_get_llm_provider,
-    mock_markdown_to_confluence_storage,
-    mock_confluence_client,
-    mock_settings,
-    app_instance,
-):
+    mock_os_remove: MagicMock,
+    mock_tempfile: MagicMock,
+    mock_get_llm_provider: MagicMock,
+    mock_markdown_to_confluence_storage: MagicMock,
+    mock_confluence_client: MagicMock,
+    mock_settings: MagicMock,
+    app_instance: MCPApp,
+) -> None:
     """
     Tests that the LLM is bypassed when the original Confluence page is empty.
     """
@@ -153,14 +154,14 @@ async def test_update_confluence_page_tool_empty_page(
 @patch("confluence_agent.agent.os.remove")
 @pytest.mark.anyio
 async def test_update_confluence_page_tool_empty_p_tag(
-    mock_os_remove,
-    mock_tempfile,
-    mock_get_llm_provider,
-    mock_markdown_to_confluence_storage,
-    mock_confluence_client,
-    mock_settings,
-    app_instance,
-):
+    mock_os_remove: MagicMock,
+    mock_tempfile: MagicMock,
+    mock_get_llm_provider: MagicMock,
+    mock_markdown_to_confluence_storage: MagicMock,
+    mock_confluence_client: MagicMock,
+    mock_settings: MagicMock,
+    app_instance: MCPApp,
+) -> None:
     """
     Tests that the LLM is bypassed when the page contains only a self-closing p tag.
     """

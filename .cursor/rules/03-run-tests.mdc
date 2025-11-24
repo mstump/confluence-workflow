@@ -1,0 +1,14 @@
+---
+description: "Run tests with pytest after modifying Python files."
+globs: ["**/*.py"]
+alwaysApply: false
+---
+
+# Run Tests
+
+After any code modification, always run the full test suite using `pytest` to ensure that all tests pass and no regressions have been introduced.
+
+**Command:**
+```bash
+pytest
+```
