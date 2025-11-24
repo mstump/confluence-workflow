@@ -1,0 +1,9 @@
+---
+description: "Pin Python Dependencies"
+globs: ["**/*.py"]
+alwaysApply: true
+---
+
+# Pin Python Dependencies
+
+When adding a dependency it must always be added to `pyproject.toml` and the version must always be pinned. For example, in `pyproject.toml` under `[project.dependencies]`, a dependency should look like: `package-name = "==1.2.3"`
