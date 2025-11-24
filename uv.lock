@@ -510,6 +510,7 @@ dev = [
     { name = "mypy" },
     { name = "pre-commit" },
     { name = "pytest" },
+    { name = "pytest-anyio" },
     { name = "trio" },
 ]
 
@@ -524,6 +525,7 @@ requires-dist = [
     { name = "pre-commit", marker = "extra == 'dev'", specifier = "==4.5.0" },
     { name = "pydantic-settings", specifier = "==2.12.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = "==9.0.1" },
+    { name = "pytest-anyio", marker = "extra == 'dev'" },
     { name = "tiktoken", specifier = "==0.8.0" },
     { name = "trio", marker = "extra == 'dev'", specifier = "==0.32.0" },
     { name = "typer", specifier = "==0.20.0" },
@@ -2107,6 +2109,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/07/56/f013048ac4bc4c1d9be45afd4ab209ea62822fb1598f40687e6bf45dcea4/pytest-9.0.1.tar.gz", hash = "sha256:3e9c069ea73583e255c3b21cf46b8d3c56f6e3a1a8f6da94ccb0fcf57b9d73c8", size = 1564125, upload_time = "2025-11-12T13:05:09.333Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0b/8b/6300fb80f858cda1c51ffa17075df5d846757081d11ab4aa35cef9e6258b/pytest-9.0.1-py3-none-any.whl", hash = "sha256:67be0030d194df2dfa7b556f2e56fb3c3315bd5c8822c6951162b92b32ce7dad", size = 373668, upload_time = "2025-11-12T13:05:07.379Z" },
+]
+
+[[package]]
+name = "pytest-anyio"
+version = "0.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/00/44/a02e5877a671b0940f21a7a0d9704c22097b123ed5cdbcca9cab39f17acc/pytest-anyio-0.0.0.tar.gz", hash = "sha256:b41234e9e9ad7ea1dbfefcc1d6891b23d5ef7c9f07ccf804c13a9cc338571fd3", size = 1560, upload_time = "2021-06-29T22:57:30.846Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c6/25/bd6493ae85d0a281b6a0f248d0fdb1d9aa2b31f18bcd4a8800cf397d8209/pytest_anyio-0.0.0-py2.py3-none-any.whl", hash = "sha256:dc8b5c4741cb16ff90be37fddd585ca943ed12bbeb563de7ace6cd94441d8746", size = 1999, upload_time = "2021-06-29T22:57:29.158Z" },
 ]
 
 [[package]]

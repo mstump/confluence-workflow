@@ -1,7 +1,7 @@
 ---
 description: "Run tests with pytest after modifying Python files."
 globs: ["**/*.py"]
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Run Tests
