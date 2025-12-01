@@ -45,7 +45,7 @@ line-length = 88
 target-version = ['py39']
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 strict = true

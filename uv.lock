@@ -512,7 +512,6 @@ dev = [
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-anyio" },
-    { name = "pytest-mock" },
     { name = "trio" },
 ]
 
@@ -529,7 +528,6 @@ requires-dist = [
     { name = "pydantic-settings", specifier = "==2.12.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = "==9.0.1" },
     { name = "pytest-anyio", marker = "extra == 'dev'" },
-    { name = "pytest-mock", marker = "extra == 'dev'", specifier = "==3.12.0" },
     { name = "tiktoken", specifier = "==0.8.0" },
     { name = "trio", marker = "extra == 'dev'", specifier = "==0.32.0" },
     { name = "typer", specifier = "==0.20.0" },
@@ -2304,18 +2302,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/00/44/a02e5877a671b0940f21a7a0d9704c22097b123ed5cdbcca9cab39f17acc/pytest-anyio-0.0.0.tar.gz", hash = "sha256:b41234e9e9ad7ea1dbfefcc1d6891b23d5ef7c9f07ccf804c13a9cc338571fd3", size = 1560, upload_time = "2021-06-29T22:57:30.846Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c6/25/bd6493ae85d0a281b6a0f248d0fdb1d9aa2b31f18bcd4a8800cf397d8209/pytest_anyio-0.0.0-py2.py3-none-any.whl", hash = "sha256:dc8b5c4741cb16ff90be37fddd585ca943ed12bbeb563de7ace6cd94441d8746", size = 1999, upload_time = "2021-06-29T22:57:29.158Z" },
-]
-
-[[package]]
-name = "pytest-mock"
-version = "3.12.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pytest" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b3/96/25588c55fbe330b751bd7c7d723c3544957566bc090f6d506551b514f488/pytest-mock-3.12.0.tar.gz", hash = "sha256:31a40f038c22cad32287bb43932054451ff5583ff094bca6f675df2f8bc1a6e9", size = 32139, upload_time = "2023-10-19T16:25:57.7Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b9/25/b29fd10dd062cf41e66787a7951b3842881a2a2d7e3a41fcbb58a8466046/pytest_mock-3.12.0-py3-none-any.whl", hash = "sha256:0972719a7263072da3a21c7f4773069bcc7486027d7e8e1f81d98a47e701bc4f", size = 9771, upload_time = "2023-10-19T16:25:55.764Z" },
 ]
 
 [[package]]
