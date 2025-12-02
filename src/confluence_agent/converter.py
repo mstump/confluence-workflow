@@ -64,7 +64,7 @@ def render_puml_to_svg(puml_content: str, settings: Settings) -> bytes:
 
 
 def process_markdown_puml(
-    markdown_content: str, settings: Settings
+    markdown_content: str, settings: Settings, work_dir: Path
 ) -> Tuple[str, List[Tuple[str, bytes]]]:
     """
     Processes markdown content to render PlantUML diagrams and replace
@@ -76,6 +76,11 @@ def process_markdown_puml(
         svg_content = render_puml_to_svg(puml_block, settings)
         image_name = f"diagram_{i + 1}.svg"
         attachments.append((image_name, svg_content))
+
+        # Write the SVG to the working directory
+        with open(work_dir / image_name, "wb") as f:
+            f.write(svg_content)
+
         image_tag = f"![{image_name}](./{image_name})"
         original_block = f"```plantuml\n{puml_block}\n```"
         replacement = f"{image_tag}\n\n{original_block}"
@@ -84,12 +89,18 @@ def process_markdown_puml(
 
 
 def convert_markdown_to_storage(
-    markdown_content: str, settings: Settings
+    markdown_content: str, settings: Settings, work_dir: Path
 ) -> Tuple[str, List[Tuple[str, bytes]]]:
     """
     Converts markdown to Confluence storage format, handling PlantUML diagrams.
     """
-    processed_markdown, attachments = process_markdown_puml(markdown_content, settings)
+    processed_markdown, attachments = process_markdown_puml(
+        markdown_content, settings, work_dir
+    )
+
+    processed_markdown_path = work_dir / "_processed.md"
+    with open(processed_markdown_path, "w", encoding="utf-8") as f:
+        f.write(processed_markdown)
 
     scanned_document = ScannedDocument(
         page_id=None,
@@ -104,8 +115,8 @@ def convert_markdown_to_storage(
     )
     options = ConfluenceDocumentOptions(ignore_invalid_url=True, generated_by=None)
     # fake path needed for link and image resolution, though we don't have any in our case
-    path = Path.cwd()
-    root_dir = Path.cwd()
+    path = processed_markdown_path
+    root_dir = work_dir
     site_metadata = ConfluenceSiteMetadata(
         domain="localhost", base_path="/", space_key="TEST"
     )
@@ -120,6 +131,9 @@ def convert_markdown_to_storage(
         page_metadata,
     )
     storage_format = confluence_document.xhtml()
+
+    # Remove captions from the storage format
+    storage_format = re.sub(r"<ac:caption>.*?</ac:caption>", "", storage_format)
 
     return storage_format, attachments
 
@@ -153,14 +167,28 @@ def hello():
     print("Hello, World!")
 ```
 """
-    storage_content, puml_attachments = convert_markdown_to_storage(
-        markdown_example, settings
-    )
-    print("----- Storage Format -----")
-    print(storage_content)
-    print("\n----- Attachments -----")
-    for name, _ in puml_attachments:
-        print(name)
+    work_dir = Path.cwd() / "test_work_dir"
+    work_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        storage_content, puml_attachments = convert_markdown_to_storage(
+            markdown_example, settings, work_dir
+        )
+        print("----- Storage Format -----")
+        print(storage_content)
+        print("\n----- Attachments -----")
+        for name, _ in puml_attachments:
+            print(name)
+    finally:
+        # Clean up the created directory
+        if work_dir.exists():
+            for item in work_dir.iterdir():
+                if item.is_file():
+                    item.unlink()
+                elif item.is_dir():
+                    import shutil
+
+                    shutil.rmtree(item)
+            work_dir.rmdir()
 
 
 if __name__ == "__main__":

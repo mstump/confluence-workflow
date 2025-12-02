@@ -3,6 +3,7 @@ from rich.console import Console
 from typing import Optional
 import os
 from pathlib import Path
+import tempfile
 
 from confluence_agent.agent import update_confluence_page
 from confluence_agent.config import Settings
@@ -100,20 +101,21 @@ def upload(
         content, version, title = confluence_client.get_page_content_and_version(
             page_id
         )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            storage_format, attachments = convert_markdown_to_storage(
+                markdown_content, settings, work_dir
+            )
 
-        storage_format, attachments = convert_markdown_to_storage(
-            markdown_content, settings
-        )
+            if attachments:
+                console.print(f"Uploading {len(attachments)} attachments...")
+                confluence_client.upload_attachments(page_id, attachments)
 
-        if attachments:
-            console.print(f"Uploading {len(attachments)} attachments...")
-            confluence_client.upload_attachments(page_id, attachments)
-
-        console.print(f"Uploading content to page '{title}' (ID: {page_id})...")
-        new_version = version + 1
-        confluence_client.update_page_content(
-            page_id, title, storage_format, new_version
-        )
+            console.print(f"Uploading content to page '{title}' (ID: {page_id})...")
+            new_version = version + 1
+            confluence_client.update_page_content(
+                page_id, title, storage_format, new_version
+            )
 
         console.print(
             f"[bold green]Success:[/bold green] Page '{title}' updated to version {new_version}."
@@ -152,12 +154,12 @@ def convert(
         )
         raise typer.Exit(code=1)
 
-    storage_format, attachments = convert_markdown_to_storage(
-        markdown_content, settings
-    )
-
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
+
+    storage_format, attachments = convert_markdown_to_storage(
+        markdown_content, settings, output_path
+    )
 
     input_file_stem = Path(markdown_path).stem
     storage_output_path = output_path / f"{input_file_stem}.storage.html"
@@ -165,9 +167,10 @@ def convert(
     with open(storage_output_path, "w", encoding="utf-8") as f:
         f.write(storage_format)
 
-    for name, data in attachments:
-        with open(output_path / name, "wb") as f:
-            f.write(data)
+    # Attachments are now written by process_markdown_puml, so this is redundant
+    # for name, data in attachments:
+    #     with open(output_path / name, "wb") as f:
+    #         f.write(data)
 
     console.print(
         f"[bold green]Success:[/bold green] Converted content and diagrams saved to: {output_dir}"

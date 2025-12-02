@@ -1,6 +1,6 @@
 import pytest
 from typer.testing import CliRunner
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, ANY
 
 from confluence_agent.cli import app
 from confluence_agent.confluence import ConfluenceClient
@@ -90,6 +90,7 @@ def test_upload_command_with_plantuml_path(
     mock_converter.assert_called_with(
         "# Test Markdown\n\nThis is a test file.\n",
         mock_settings,
+        ANY,
     )
 
 

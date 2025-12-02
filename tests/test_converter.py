@@ -29,7 +29,7 @@ def test_render_puml_to_svg_success(mock_settings):
         mock_run.assert_called_once()
 
 
-def test_process_markdown_puml_retains_block(mock_settings):
+def test_process_markdown_puml_retains_block(mock_settings, tmp_path):
     """
     Tests that the puml block is retained and the image is inserted before it.
     """
@@ -45,15 +45,17 @@ A -> B
     with patch("confluence_agent.converter.render_puml_to_svg") as mock_render:
         mock_render.return_value = b"<svg>diagram</svg>"
         processed_markdown, attachments = process_markdown_puml(
-            markdown_content, mock_settings
+            markdown_content, mock_settings, tmp_path
         )
 
         assert "![diagram_1.svg](./diagram_1.svg)" in processed_markdown
         assert "```plantuml\n@startuml\nA -> B\n@enduml\n```" in processed_markdown
         assert len(attachments) == 1
+        # Check that the file was written
+        assert (tmp_path / "diagram_1.svg").exists()
 
 
-def test_convert_markdown_to_storage(mock_settings):
+def test_convert_markdown_to_storage(mock_settings, tmp_path):
     markdown_content = """
 # Title
 ```plantuml
@@ -72,11 +74,13 @@ A -> B
     ):
         mock_render_puml_to_svg.return_value = b"<svg>diagram</svg>"
         mock_doc_instance = MagicMock()
-        mock_doc_instance.xhtml.return_value = "<p>Storage Format</p>"
+        mock_doc_instance.xhtml.return_value = (
+            "<p>Storage Format</p><ac:caption>diagram_1.svg</ac:caption>"
+        )
         mock_confluence_document.return_value = mock_doc_instance
 
         storage_format, attachments = convert_markdown_to_storage(
-            markdown_content, mock_settings
+            markdown_content, mock_settings, tmp_path
         )
 
         assert storage_format == "<p>Storage Format</p>"
@@ -84,3 +88,5 @@ A -> B
         assert attachments[0][0] == "diagram_1.svg"
         assert attachments[0][1] == b"<svg>diagram</svg>"
         mock_doc_instance.xhtml.assert_called_once()
+        assert (tmp_path / "diagram_1.svg").exists()
+        assert (tmp_path / "_processed.md").exists()
