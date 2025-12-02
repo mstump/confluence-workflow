@@ -135,6 +135,9 @@ def convert_markdown_to_storage(
     # Remove captions from the storage format
     storage_format = re.sub(r"<ac:caption>.*?</ac:caption>", "", storage_format)
 
+    # Modify image macros to scale to 100% width
+    storage_format = re.sub(r"<ac:image", r'<ac:image ac:width="100%"', storage_format)
+
     return storage_format, attachments
 
 
