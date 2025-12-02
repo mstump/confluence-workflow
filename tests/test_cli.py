@@ -1,6 +1,7 @@
 import pytest
 from typer.testing import CliRunner
 from unittest.mock import patch, MagicMock, ANY
+from pathlib import Path
 
 from confluence_agent.cli import app
 from confluence_agent.confluence import ConfluenceClient
@@ -68,9 +69,14 @@ def test_upload_command_with_attachments(
     )
 
     # Assert
-    mock_confluence_client.upload_attachments.assert_called_once_with(
-        "12345", attachments
-    )
+    mock_confluence_client.upload_attachments.assert_called_once()
+    args, _ = mock_confluence_client.upload_attachments.call_args
+    assert args[0] == "12345"
+    uploaded_attachments = args[1]
+    assert len(uploaded_attachments) == 1
+    filepath, content = uploaded_attachments[0]
+    assert Path(filepath).name == "diagram.png"
+    assert content == b"imagedata"
 
 
 def test_upload_command_with_plantuml_path(

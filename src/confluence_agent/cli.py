@@ -109,7 +109,13 @@ def upload(
 
             if attachments:
                 console.print(f"Uploading {len(attachments)} attachments...")
-                confluence_client.upload_attachments(page_id, attachments)
+                confluence_client.upload_attachments(
+                    page_id,
+                    [
+                        (os.path.join(work_dir, filename), content)
+                        for filename, content in attachments
+                    ],
+                )
 
             console.print(f"Uploading content to page '{title}' (ID: {page_id})...")
             new_version = version + 1

@@ -82,9 +82,7 @@ class ConfluenceClient:
             page_id: The ID of the page to attach the files to.
             attachments: A list of tuples, where each tuple contains the filename and the file content as bytes.
         """
-        for filename, content in attachments:
-            with open(filename, "wb") as f:
-                f.write(content)
+        for filename, _ in attachments:
             self.confluence.attach_file(
                 filename=filename, page_id=page_id, content_type="auto"
             )
