@@ -74,6 +74,21 @@ class ConfluenceClient:
         except ApiError as e:
             raise ApiError(f"Failed to get page content for page ID {page_id}: {e}")
 
+    def upload_attachments(self, page_id: str, attachments: list[tuple[str, bytes]]):
+        """
+        Uploads a list of attachments to a Confluence page.
+
+        Args:
+            page_id: The ID of the page to attach the files to.
+            attachments: A list of tuples, where each tuple contains the filename and the file content as bytes.
+        """
+        for filename, content in attachments:
+            with open(filename, "wb") as f:
+                f.write(content)
+            self.confluence.attach_file(
+                filename=filename, page_id=page_id, content_type="auto"
+            )
+
     def update_page_content(
         self,
         page_id: str,

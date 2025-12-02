@@ -20,6 +20,8 @@ class Settings(McpSettings):
     confluence_url: str
     confluence_username: str
     confluence_api_token: str
+    plantuml_jar_path: str = "plantuml.jar"
+    plantuml_java_path: str = "java"
 
     # LLM Provider Configuration
     llm_provider: str = "openai"

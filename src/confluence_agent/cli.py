@@ -1,5 +1,4 @@
 import typer
-import asyncio
 from rich.console import Console
 from typing import Optional
 import os
@@ -7,7 +6,7 @@ from pathlib import Path
 
 from confluence_agent.agent import update_confluence_page
 from confluence_agent.config import Settings
-from confluence_agent.confluence import ConfluenceClient, get_page_id_from_url
+from confluence_agent.confluence import ConfluenceClient
 from confluence_agent.converter import convert_markdown_to_storage
 
 app = typer.Typer()
@@ -77,12 +76,7 @@ def upload(
     """
     Converts a local markdown file and uploads it to a Confluence page.
     """
-    settings = Settings(
-        confluence_url="http://localhost:8090",
-        confluence_username="admin",
-        confluence_api_token="token",
-        plantuml_jar_path="plantuml.jar",
-    )
+    settings = Settings()
     confluence_client = ConfluenceClient(
         url=settings.confluence_url,
         username=settings.confluence_username,
@@ -99,39 +93,34 @@ def upload(
         )
         raise typer.Exit(code=1)
 
-    async def run_upload() -> None:
-        try:
-            console.print("Converting markdown to Confluence storage format...")
-            page_id = get_page_id_from_url(page_url)
-            console.print(f"Fetching details for page ID: {page_id}")
-            content, version, title, space_key = (
-                confluence_client.get_page_content_and_version(page_id)
-            )
+    try:
+        console.print("Converting markdown to Confluence storage format...")
+        page_id = ConfluenceClient._get_page_id_from_url(page_url)
+        console.print(f"Fetching details for page ID: {page_id}")
+        content, version, title = confluence_client.get_page_content_and_version(
+            page_id
+        )
 
-            storage_format, attachments, wiki_markup = (
-                await convert_markdown_to_storage(
-                    markdown_content, confluence_client, settings
-                )
-            )
+        storage_format, attachments = convert_markdown_to_storage(
+            markdown_content, settings
+        )
 
-            if attachments:
-                console.print(f"Uploading {len(attachments)} attachments...")
-                confluence_client.upload_attachments(page_id, attachments)
+        if attachments:
+            console.print(f"Uploading {len(attachments)} attachments...")
+            confluence_client.upload_attachments(page_id, attachments)
 
-            console.print(f"Uploading content to page '{title}' (ID: {page_id})...")
-            new_version = version + 1
-            confluence_client.update_page_content(
-                page_id, title, storage_format, new_version
-            )
+        console.print(f"Uploading content to page '{title}' (ID: {page_id})...")
+        new_version = version + 1
+        confluence_client.update_page_content(
+            page_id, title, storage_format, new_version
+        )
 
-            console.print(
-                f"[bold green]Success:[/bold green] Page '{title}' updated to version {new_version}."
-            )
-        except Exception as e:
-            console.print(f"[bold red]Error:[/bold red] {e}")
-            raise typer.Exit(code=1)
-
-    asyncio.run(run_upload())
+        console.print(
+            f"[bold green]Success:[/bold green] Page '{title}' updated to version {new_version}."
+        )
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -146,12 +135,7 @@ def convert(
     """
     Converts a local markdown file to Confluence storage format.
     """
-    settings = Settings(
-        confluence_url="http://localhost:8090",
-        confluence_username="admin",
-        confluence_api_token="token",
-        plantuml_jar_path="plantuml.jar",
-    )
+    settings = Settings()
     confluence_client = ConfluenceClient(
         url=settings.confluence_url,
         username=settings.confluence_username,
@@ -168,33 +152,26 @@ def convert(
         )
         raise typer.Exit(code=1)
 
-    async def run_convert() -> None:
-        storage_format, attachments, wiki_markup = await convert_markdown_to_storage(
-            markdown_content, confluence_client, settings
-        )
+    storage_format, attachments = convert_markdown_to_storage(
+        markdown_content, settings
+    )
 
-        output_path = Path(output_dir)
-        output_path.mkdir(parents=True, exist_ok=True)
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
 
-        input_file_stem = Path(markdown_path).stem
-        jira_output_path = output_path / f"{input_file_stem}.jira"
-        wiki_output_path = output_path / f"{input_file_stem}.wiki"
+    input_file_stem = Path(markdown_path).stem
+    storage_output_path = output_path / f"{input_file_stem}.storage.html"
 
-        with open(jira_output_path, "w", encoding="utf-8") as f:
-            f.write(storage_format)
+    with open(storage_output_path, "w", encoding="utf-8") as f:
+        f.write(storage_format)
 
-        with open(wiki_output_path, "w", encoding="utf-8") as f:
-            f.write(wiki_markup)
+    for name, data in attachments:
+        with open(output_path / name, "wb") as f:
+            f.write(data)
 
-        for name, data in attachments:
-            with open(output_path / name, "wb") as f:
-                f.write(data)
-
-        console.print(
-            f"[bold green]Success:[/bold green] Converted content and diagrams saved to: {output_dir}"
-        )
-
-    asyncio.run(run_convert())
+    console.print(
+        f"[bold green]Success:[/bold green] Converted content and diagrams saved to: {output_dir}"
+    )
 
 
 if __name__ == "__main__":

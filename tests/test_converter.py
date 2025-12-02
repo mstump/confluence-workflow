@@ -1,5 +1,4 @@
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import anyio
@@ -7,7 +6,6 @@ from confluence_agent.converter import (
     convert_markdown_to_storage,
     render_puml_to_svg,
     process_markdown_puml,
-    convert_wiki_to_storage,
 )
 
 
@@ -56,85 +54,33 @@ A -> B
 
 
 def test_convert_markdown_to_storage(mock_settings):
-    async def run_test():
-        markdown_content = """
+    markdown_content = """
 # Title
-
 ```plantuml
 @startuml
 A -> B
 @enduml
 ```
 """
-        mock_confluence_client = MagicMock()
-        mock_confluence_client.confluence = MagicMock()
+    with (
+        patch(
+            "confluence_agent.converter.render_puml_to_svg"
+        ) as mock_render_puml_to_svg,
+        patch(
+            "confluence_agent.converter.ConfluenceDocument"
+        ) as mock_confluence_document,
+    ):
+        mock_render_puml_to_svg.return_value = b"<svg>diagram</svg>"
+        mock_doc_instance = MagicMock()
+        mock_doc_instance.xhtml.return_value = "<p>Storage Format</p>"
+        mock_confluence_document.return_value = mock_doc_instance
 
-        with (
-            patch(
-                "confluence_agent.converter.render_puml_to_svg"
-            ) as mock_render_puml_to_svg,
-            patch(
-                "confluence_agent.converter.convert_wiki_to_storage"
-            ) as mock_convert_wiki,
-        ):
-            mock_render_puml_to_svg.return_value = b"<svg>diagram</svg>"
-            mock_convert_wiki.return_value = "<p>Storage Format</p>"
-
-            storage_format, attachments, _ = await convert_markdown_to_storage(
-                markdown_content, mock_confluence_client, mock_settings
-            )
-
-            assert storage_format == "<p>Storage Format</p>"
-            assert len(attachments) == 1
-            assert attachments[0][0] == "diagram_1.svg"
-            assert attachments[0][1] == b"<svg>diagram</svg>"
-            mock_convert_wiki.assert_called_once()
-
-    anyio.run(run_test)
-
-
-def test_convert_wiki_to_storage_async_path():
-    """Tests the asynchronous path for wiki to storage conversion."""
-
-    async def run_test():
-        mock_confluence = MagicMock()
-        mock_confluence.post.return_value = {"asyncId": "123"}
-        mock_confluence.get.return_value = {
-            "status": "COMPLETED",
-            "value": "<p>Converted</p>",
-        }
-
-        with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await convert_wiki_to_storage(mock_confluence, "h1. Test")
-
-        assert result == "<p>Converted</p>"
-        mock_confluence.post.assert_called_once_with(
-            "rest/api/contentbody/convert/storage",
-            data={"value": "h1. Test", "representation": "wiki"},
-        )
-        mock_confluence.get.assert_called_once_with(
-            "rest/api/contentbody/convert/async/123"
+        storage_format, attachments = convert_markdown_to_storage(
+            markdown_content, mock_settings
         )
 
-    anyio.run(run_test)
-
-
-def test_convert_wiki_to_storage_sync_path():
-    """Tests the synchronous path for wiki to storage conversion."""
-
-    async def run_test():
-        mock_confluence = MagicMock()
-        mock_confluence.post.return_value = {
-            "status": "COMPLETED",
-            "value": "<p>Converted Immediately</p>",
-        }
-
-        result = await convert_wiki_to_storage(mock_confluence, "h1. Test")
-        assert result == "<p>Converted Immediately</p>"
-        mock_confluence.post.assert_called_once_with(
-            "rest/api/contentbody/convert/storage",
-            data={"value": "h1. Test", "representation": "wiki"},
-        )
-        mock_confluence.get.assert_not_called()
-
-    anyio.run(run_test)
+        assert storage_format == "<p>Storage Format</p>"
+        assert len(attachments) == 1
+        assert attachments[0][0] == "diagram_1.svg"
+        assert attachments[0][1] == b"<svg>diagram</svg>"
+        mock_doc_instance.xhtml.assert_called_once()
