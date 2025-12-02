@@ -103,7 +103,7 @@ async def update_confluence_page(
         logger.debug(f"Initial markdown content: {markdown_content}")
 
         # 1. Load configuration
-        settings = Settings()
+        settings = Settings()  # type: ignore
         logger.info("Configuration loaded.")
 
         # 2. Initialize Confluence client

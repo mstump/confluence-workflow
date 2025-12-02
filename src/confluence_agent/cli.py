@@ -2,6 +2,7 @@ import typer
 from rich.console import Console
 from typing import Optional
 import os
+import asyncio
 from pathlib import Path
 import tempfile
 
@@ -39,7 +40,7 @@ def update(
     """
     Updates a Confluence page with the content of a markdown file.
     """
-    settings = Settings()
+    settings = Settings()  # type: ignore
     llm_provider = provider if provider else settings.llm_provider
 
     console.print(f"Reading markdown file from: {markdown_path}")
@@ -77,7 +78,7 @@ def upload(
     """
     Converts a local markdown file and uploads it to a Confluence page.
     """
-    settings = Settings()
+    settings = Settings()  # type: ignore
     confluence_client = ConfluenceClient(
         url=settings.confluence_url,
         username=settings.confluence_username,
@@ -143,7 +144,7 @@ def convert(
     """
     Converts a local markdown file to Confluence storage format.
     """
-    settings = Settings()
+    settings = Settings()  # type: ignore
     confluence_client = ConfluenceClient(
         url=settings.confluence_url,
         username=settings.confluence_username,
@@ -172,11 +173,6 @@ def convert(
 
     with open(storage_output_path, "w", encoding="utf-8") as f:
         f.write(storage_format)
-
-    # Attachments are now written by process_markdown_puml, so this is redundant
-    # for name, data in attachments:
-    #     with open(output_path / name, "wb") as f:
-    #         f.write(data)
 
     console.print(
         f"[bold green]Success:[/bold green] Converted content and diagrams saved to: {output_dir}"

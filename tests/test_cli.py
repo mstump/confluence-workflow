@@ -118,3 +118,21 @@ def test_upload_command_handles_unpacking_correctly(
     )
     assert result.exit_code == 0
     assert "Success" in result.stdout
+
+
+@patch("confluence_agent.cli.update_confluence_page")
+def test_update_command_success(mock_update_confluence_page):
+    """
+    Tests that the update command runs successfully.
+    """
+    mock_update_confluence_page.return_value = "Success"
+    result = runner.invoke(
+        app,
+        [
+            "update",
+            "tests/fixtures/test.md",
+            "http://example.com/display/SPACE/Page+Title",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Success" in result.stdout

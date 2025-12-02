@@ -8,7 +8,7 @@ from atlassian.errors import ApiError
 class ConfluenceClient:
     """A client for interacting with the Confluence API."""
 
-    def __init__(self, url: str, username: str, api_token: str):
+    def __init__(self, url: str | None, username: str | None, api_token: str | None):
         """
         Initializes the Confluence client.
 
@@ -17,6 +17,10 @@ class ConfluenceClient:
             username: The username for authentication.
             api_token: The API token for authentication.
         """
+        if not all([url, username, api_token]):
+            raise ValueError(
+                "Confluence URL, username, and API token must be provided."
+            )
         self.confluence = Confluence(
             url=url,
             username=username,
