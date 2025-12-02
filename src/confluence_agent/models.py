@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Literal
+from typing import Literal, Optional
 
 
 class ConfluenceContent(BaseModel):
@@ -11,9 +11,6 @@ class ConfluenceContent(BaseModel):
 class CriticResponse(BaseModel):
     """Data model for the critic's response."""
 
-    decision: Literal["APPROVE", "REJECT"] = Field(
-        ..., description="The decision of the critic."
-    )
-    content: str | None = Field(
-        None, description="The content to be published if the decision is APPROVE."
-    )
+    decision: str
+    reasoning: Optional[str] = None
+    content: Optional[str] = None

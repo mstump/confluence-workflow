@@ -208,13 +208,14 @@ async def update_confluence_page(
                         critic_response = await _generate_structured_with_retry(
                             llm, prompt, CriticResponse
                         )
-
+                        logger.info(f"Critic response: {critic_response}")
                         if critic_response.decision == "REJECT":
+                            reason = critic_response.reasoning or "No reason provided."
                             logger.error(
-                                "Critic agent rejected the final content. Aborting update."
+                                f"Critic agent rejected the final content. Reason: {reason}. Aborting update."
                             )
                             raise Exception(
-                                "Critic agent rejected the final content. Please review the logs."
+                                f"Critic rejected the proposed content. Reason: {reason}"
                             )
 
                         if critic_response.content is None:

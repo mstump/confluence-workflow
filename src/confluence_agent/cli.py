@@ -43,25 +43,32 @@ def update(
     settings = Settings()  # type: ignore
     llm_provider = provider if provider else settings.llm_provider
 
-    console.print(f"Reading markdown file from: {markdown_path}")
-    try:
-        with open(markdown_path, "r", encoding="utf-8") as f:
-            markdown_content = f.read()
-    except FileNotFoundError:
-        console.print(
-            f"[bold red]Error:[/bold red] Markdown file not found at: {markdown_path}"
-        )
-        raise typer.Exit(code=1)
-
-    console.print(f"Updating Confluence page: {page_url} using {llm_provider}")
-
     async def run_update() -> None:
-        result = await update_confluence_page(markdown_content, page_url, llm_provider)
-        if "Error" in result:
-            console.print(f"[bold red]Failed to update page:[/bold red] {result}")
-            raise typer.Exit(code=1)
-        else:
-            console.print(f"[bold green]Success:[/bold green] {result}")
+        with console.status(
+            "[bold green]Updating Confluence page...", spinner="dots"
+        ) as status:
+            status.update(f"[bold green]Reading markdown file from: {markdown_path}...")
+            try:
+                with open(markdown_path, "r", encoding="utf-8") as f:
+                    markdown_content = f.read()
+            except FileNotFoundError:
+                console.print(
+                    f"[bold red]Error:[/bold red] Markdown file not found at: {markdown_path}"
+                )
+                raise typer.Exit(code=1)
+
+            status.update(
+                f"[bold green]Updating Confluence page: {page_url} using {llm_provider}..."
+            )
+            result = await update_confluence_page(
+                markdown_content, page_url, llm_provider
+            )
+
+            if "Error" in result:
+                console.print(f"[bold red]Failed to update page:[/bold red] {result}")
+                raise typer.Exit(code=1)
+            else:
+                console.print(f"[bold green]Success:[/bold green] {result}")
 
     asyncio.run(run_update())
 

@@ -63,10 +63,12 @@ You are the final gatekeeper for Confluence page updates. Your standards are exc
 **Instructions:**
 
 1.  Rigorously check the `FINAL_PROPOSED_CONTENT` for any errors: broken XML, malformed macros, or inconsistencies.
-2.  Compare it against the `ORIGINAL_CONTENT` and `NEW_CONTENT` to ensure all changes were made correctly and nothing was lost.
-3.  If the content is perfect and ready for publication, your JSON response should be: `{{ "decision": "APPROVE", "content": "..." }}` where "..." is the final approved content.
-4.  If there are any errors, no matter how small, your JSON response should be: `{{ "decision": "REJECT" }}`. Do not include the content field.
-5.  Your response must be only the specified JSON object.
+2.  A special note on macros: When you check `ac:structured-macro` elements, you must ignore any inconsistencies in the `ac:macro-id` attribute. A page should not be rejected due to `ac:macro-id` mismatches.
+3.  Compare it against the `ORIGINAL_CONTENT` and `NEW_CONTENT` to ensure all changes were made correctly and nothing was lost.
+4.  Your primary role is to validate the merge logic, not to be a copyeditor. If you find mistakes (such as spelling or grammatical errors) that were present in both the `ORIGINAL_CONTENT` and `NEW_CONTENT`, you should ignore them. Do not reject a page for pre-existing errors.
+5.  If the content is perfect and ready for publication, your JSON response should be: `{{ "decision": "APPROVE", "content": "..." }}` where "..." is the final approved content.
+6.  If there are any errors, no matter how small, your JSON response should be: `{{ "decision": "REJECT", "reasoning": "..." }}`. Include a brief, specific reason for the rejection. Do not include the content field.
+7.  Your response must be only the specified JSON object.
 
 **Original Content (Storage Format):**
 ```xml
