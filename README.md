@@ -22,7 +22,7 @@ attachments, and inline comments by leveraging an LLM.
 1. **Clone the repository:**
 
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/mstump/confluence-workflow
     cd confluence-agent-workflow
     ```
 
@@ -43,6 +43,15 @@ attachments, and inline comments by leveraging an LLM.
 
     Edit `.env` with your Confluence URL, username, API token, and OpenAI API
     key.
+
+## Verified LLM Providers
+
+This workflow has been verified with the following LLM provider and model:
+
+* **Provider**: `openai`
+* **Model**: `gpt-5-nano`
+
+Note: When using Google's models, `gemini-2.5-flash-lite` produced unsatisfactory results, and other Google models have not yet been tested.
 
 ## Usage
 
@@ -71,6 +80,8 @@ To ensure everything is set up correctly, run the test suite:
 pytest
 ```
 
+Note: The `pytest` command is configured to be run via `uv run pytest`.
+
 ### Starting the MCP Server
 
 To run the agent as an MCP server, use the `mcp-agent` CLI:
@@ -83,16 +94,76 @@ The server will be available on `localhost:8000` by default.
 
 ### Command-Line Interface (CLI)
 
-You can also run the workflow directly from the command line.
+The `confluence-agent` provides a command-line interface for interacting with Confluence.
+
+While the package installs a `confluence-agent` command, for development it is often more reliable to invoke the CLI via `python -m`. Here is the recommended format:
 
 ```bash
-confluence-agent update path/to/your/document.md 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Your+Page+Title'
+LOG_LEVEL='INFO' PYTHONPATH=./src uv run python -m confluence_agent.cli [COMMAND] [ARGS]
 ```
+
+#### `update`
+
+Updates a Confluence page with the content of a local markdown file, using an LLM to merge the content intelligently.
+
+**Example:**
+
+```bash
+LOG_LEVEL='INFO' PYTHONPATH=./src uv run python -m confluence_agent.cli update 'path/to/your/document.md' 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Your+Page+Title'
+```
+
+**Arguments:**
+
+* `MARKDOWN_PATH`: The local path to the markdown file.
+* `PAGE_URL`: The URL of the Confluence page to update.
+
+**Options:**
+
+* `--provider` / `-p`: Specify the LLM provider to use (`openai` or `google`). Overrides the `LLM_PROVIDER` environment variable.
+
+#### `upload`
+
+Converts a local markdown file to Confluence storage format and uploads it, overwriting the existing content. This command does not use an LLM for merging.
+
+**Example:**
+
+```bash
+LOG_LEVEL='INFO' PYTHONPATH=./src uv run python -m confluence_agent.cli upload 'path/to/your/document.md' 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Your+Page+Title'
+```
+
+**Arguments:**
+
+* `MARKDOWN_PATH`: The local path to the markdown file.
+* `PAGE_URL`: The URL of the Confluence page to update.
+
+#### `convert`
+
+Converts a local markdown file to Confluence storage format and saves it locally without uploading.
+
+**Example:**
+
+```bash
+LOG_LEVEL='INFO' PYTHONPATH=./src uv run python -m confluence_agent.cli convert 'path/to/your/document.md' 'path/to/output/dir'
+```
+
+**Arguments:**
+
+* `MARKDOWN_PATH`: The local path to the markdown file.
+* `OUTPUT_DIR`: The directory to save the converted file and any generated diagrams.
 
 ### Interacting with the Agent
 
-You can interact with the running agent's tool `update_confluence_page` using an
-MCP client or by sending a direct HTTP request.
+When running as an MCP server, the agent exposes the `update_confluence_page` tool, which can be invoked via an MCP client or a direct HTTP request.
+
+#### Tool: `update_confluence_page`
+
+Updates a Confluence page with the content of a markdown string. This tool performs the same intelligent merging as the `update` CLI command.
+
+**Input:**
+
+* `markdown_content` (string): The markdown content to update the page with.
+* `page_url` (string): The URL of the target Confluence page.
+* `provider` (string): The LLM provider to use (`openai` or `google`).
 
 **Example using `curl`:**
 
@@ -102,13 +173,13 @@ curl -X POST http://localhost:8000/tools/update_confluence_page/invoke \
 -d '{
     "input": {
         "markdown_content": "# My New Section\n\nThis is the updated content.",
-        "page_url": "https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Your+Page+Title"
+        "page_url": "https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Your+Page+Title",
+        "provider": "openai"
     }
 }'
 ```
 
-Make sure to replace the `page_url` with the URL of your target Confluence
-page and modify the `markdown_content` with your desired input.
+Make sure to replace the `page_url` with the URL of your target Confluence page and modify the `markdown_content` with your desired input.
 
 ## Developer Notes
 
