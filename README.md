@@ -26,6 +26,8 @@ This workflow solves both of these issues:
 ## Prerequisites
 
 - **Python 3.10+**
+- **Java**: Runtime environment (JRE) is required for PlantUML.
+- **PlantUML**: `plantuml.jar` must be available (default expectation is `plantuml.jar` in the project root or configurable via `.env`).
 - **uv**: Recommended for dependency management (or standard pip/venv).
 - **Confluence Cloud**: Access to an instance with API token credentials.
 - **LLM API Key**: Access to an LLM provider (OpenAI or Google).
