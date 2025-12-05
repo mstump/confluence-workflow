@@ -1,32 +1,47 @@
 # Confluence Agent Workflow
 
-This project implements an agentic workflow to update a Confluence page from a
-local markdown file. It uses `mcp-agent` to expose this workflow as an MCP
-server.
+An intelligent agentic workflow that converts local Markdown files into Confluence pages. It leverages Large Language Models (LLMs) to intelligently merge content, preserving existing page context like inline comments and macros, while automatically handling diagrams.
 
-The agent intelligently merges new content into the existing Confluence page.
-It uses a multi-step process involving an initial merge, a reflection step to
-correct errors, and a final critic step to ensure quality before updating the
-page. This process preserves Confluence-specific elements like macros,
-attachments, and inline comments by leveraging an LLM.
+This project uses [mcp-agent](https://pypi.org/project/mcp-agent/) to expose this workflow as a Model Context Protocol (MCP) server.
+
+## Motivation
+
+I write Confluence pages in markdown, typically using Cursor as my editor, and then publish to Confluence. When publishing I routinely ran into two problems:
+
+- My diagrams didn't render correctly. I had to manually re-add diagram macros after publishing.
+- Every time I published, I lost the location context of inline comments.
+
+This workflow solves both of these issues:
+
+- It renders diagrams as SVGs and inserts an inline image above the associated code block. When publishing, the SVG files are uploaded as attachments.
+- It uses an LLM to get the existing page state and merge in any comment location markup so that when publishing, comments are retained.
+
+## Key Features
+
+- **Intelligent Merging**: Uses a multi-step LLM process (Merge -> Reflect -> Critic) to update pages without overwriting existing context.
+- **Comment Preservation**: Retains the location context of inline comments on Confluence pages, solving a common pain point when publishing from Markdown.
+- **Diagram Support**: Automatically renders [PlantUML](https://plantuml.com/) diagrams as SVGs and uploads them as attachments.
+- **Markdown Compatibility**: Built on [markdown-to-confluence](https://pypi.org/project/markdown-to-confluence/) for robust conversion to Confluence Storage Format.
 
 ## Prerequisites
 
-* Python 3.10+
-* An active virtual environment (e.g., venv, conda).
-* Access to a Confluence Cloud instance with API token credentials.
-* An LLM provider API key (e.g., OpenAI, Anthropic, Google).
+- **Python 3.10+**
+- **uv**: Recommended for dependency management (or standard pip/venv).
+- **Confluence Cloud**: Access to an instance with API token credentials.
+- **LLM API Key**: Access to an LLM provider (OpenAI or Google).
 
-### Installation
+## Installation
 
 1. **Clone the repository:**
 
     ```bash
     git clone https://github.com/mstump/confluence-workflow
-    cd confluence-agent-workflow
+    cd confluence-workflow
     ```
 
-2. **Create a virtual environment and install dependencies:**
+2. **Set up the environment:**
+
+    Using `uv` (recommended):
 
     ```bash
     uv venv
@@ -34,196 +49,128 @@ attachments, and inline comments by leveraging an LLM.
     uv pip install -e '.[dev]'
     ```
 
-3. **Configure environment variables:**
-    Copy the example environment file and fill in your credentials.
+3. **Configure Credentials:**
+
+    Copy the example environment file and add your API keys:
 
     ```bash
     cp .env.example .env
     ```
 
-    Edit `.env` with your Confluence URL, username, API token, and OpenAI API
-    key.
+    Edit `.env` with your details:
+    - `CONFLUENCE_URL` (e.g., `https://your-domain.atlassian.net/wiki`)
+    - `CONFLUENCE_USERNAME` (Email address)
+    - `CONFLUENCE_API_TOKEN` (Create one at Atlassian Account Settings)
+    - `OPENAI_API_KEY` (or Google equivalent)
 
-## Docker
+### Verified LLM Providers
 
-This project includes a `Dockerfile` for building a container image with all the necessary dependencies, including Python, Java, PlantUML, and Pandoc.
+This workflow is verified with:
 
-### Automated Builds
+- **OpenAI**: `gpt-5` (Configured as default)
+- **Google**: `gemini-2.5-pro`
 
-A GitHub Actions workflow is configured to automatically build and publish the Docker image to the GitHub Container Registry. The image is tagged with the short Git SHA of the commit.
-
-You can find the published images here:
-[https://github.com/users/mstump/packages/container/package/confluence-workflow](https://github.com/users/mstump/packages/container/package/confluence-workflow)
-
-### Building the Image Manually
-
-To build the Docker image locally, run the following command from the root of the project:
-
-```bash
-docker build -t confluence-agent .
-```
-
-### Running the Container
-
-You can run the `confluence-agent` CLI from within the container. You'll need to pass in your environment variables. You can do this with an `.env` file and the `--env-file` flag.
-
-```bash
-docker run --rm -it --env-file .env confluence-agent [COMMAND] [ARGS]
-```
-
-For example, to run the `update` command:
-
-```bash
-docker run --rm -it \
-  --env-file .env \
-  -v "$(pwd)/path/to/your/document.md:/app/document.md" \
-  confluence-agent update /app/document.md 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Your+Page+Title'
-```
-
-Note that you will need to mount any local files you want to access as a volume.
-
-## Verified LLM Providers
-
-This workflow has been verified with the following LLM provider and model:
-
-* **Provider**: `openai`
-* **Model**: `gpt-5`
-
-Note: When using Google's models, `gemini-2.5-flash-lite` produced unsatisfactory results, and other Google models have not yet been tested.
+*Note: When using Google's models, `gemini-2.5-flash-lite` produced unsatisfactory results.*
 
 ## Usage
 
-### Setting Up Pre-commit Hooks
+The tool can be used via the Command-Line Interface (CLI) or as an MCP Server.
 
-This project uses `pre-commit` to enforce code style and quality checks. To set
-it up, run the following command after installing the dev dependencies:
+### CLI Commands
 
-```bash
-pre-commit install
-```
+For development, it is recommended to run commands using `python -m` to ensure the local source is used.
 
-This will install git hooks that run automatically before each commit.
-
-You can also run the hooks manually on all files at any time:
+First, export the necessary variables:
 
 ```bash
-pre-commit run --all-files
+export LOG_LEVEL='INFO'
+export PYTHONPATH=./src
 ```
 
-### Running Tests
+#### 1. Update a Page (Recommended)
 
-To ensure everything is set up correctly, run the test suite:
+Updates a Confluence page using the intelligent LLM merge agent. This preserves comments and handles conflicts.
 
 ```bash
-pytest
+uv run python -m confluence_agent.cli update 'path/to/document.md' 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Title'
 ```
 
-Note: The `pytest` command is configured to be run via `uv run pytest`.
+**Options:**
 
-### Starting the MCP Server
+- `--provider` / `-p`: Override the LLM provider (e.g., `-p google`).
 
-To run the agent as an MCP server, use the `mcp-agent` CLI:
+#### 2. Upload (Direct)
+
+Converts and uploads the file, **overwriting** existing content (no LLM merge). Use this for initial page creation or when context preservation isn't needed.
+
+```bash
+uv run python -m confluence_agent.cli upload 'path/to/document.md' 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Title'
+```
+
+#### 3. Convert Only
+
+Converts Markdown to Confluence Storage Format locally for inspection.
+
+```bash
+uv run python -m confluence_agent.cli convert 'path/to/document.md' './output_dir'
+```
+
+### MCP Server
+
+Run the agent as an MCP server to integrate with AI coding assistants (like Cursor) or other MCP clients.
 
 ```bash
 uvx mcp-agent serve confluence_agent
 ```
 
-The server will be available on `localhost:8000` by default.
+The server will run on `localhost:8000` (default).
 
-### Command-Line Interface (CLI)
+**Available Tool:** `update_confluence_page`
 
-The `confluence-agent` provides a command-line interface for interacting with Confluence.
+- **Inputs**:
+  - `markdown_content` (string): The new content.
+  - `page_url` (string): Target Confluence page.
+  - `provider` (string): `openai` or `google`.
 
-While the package installs a `confluence-agent` command, for development it is often more reliable to invoke the CLI via `python -m`. Here is the recommended format:
+## Docker Support
 
-```bash
-LOG_LEVEL='INFO' PYTHONPATH=./src uv run python -m confluence_agent.cli [COMMAND] [ARGS]
-```
+A Docker image is available containing all dependencies (Python, Java, PlantUML, Pandoc).
 
-#### `update`
+- **Registry**: [ghcr.io/mstump/confluence-workflow](https://github.com/users/mstump/packages/container/package/confluence-workflow)
+- **Build**: `docker build -t confluence-agent .`
 
-Updates a Confluence page with the content of a local markdown file, using an LLM to merge the content intelligently.
+### Run with Docker
 
-**Example:**
-
-```bash
-LOG_LEVEL='INFO' PYTHONPATH=./src uv run python -m confluence_agent.cli update 'path/to/your/document.md' 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Your+Page+Title'
-```
-
-**Arguments:**
-
-* `MARKDOWN_PATH`: The local path to the markdown file.
-* `PAGE_URL`: The URL of the Confluence page to update.
-
-**Options:**
-
-* `--provider` / `-p`: Specify the LLM provider to use (`openai` or `google`). Overrides the `LLM_PROVIDER` environment variable.
-
-#### `upload`
-
-Converts a local markdown file to Confluence storage format and uploads it, overwriting the existing content. This command does not use an LLM for merging.
-
-**Example:**
+Mount your local documents directory to `/app` in the container:
 
 ```bash
-LOG_LEVEL='INFO' PYTHONPATH=./src uv run python -m confluence_agent.cli upload 'path/to/your/document.md' 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Your+Page+Title'
+docker run --rm -it \
+  --env-file .env \
+  -v "$(pwd)/docs:/app/docs" \
+  ghcr.io/mstump/confluence-workflow:latest \
+  update /app/docs/page.md 'https://your-domain.atlassian.net/wiki/...'
 ```
 
-**Arguments:**
+## Development
 
-* `MARKDOWN_PATH`: The local path to the markdown file.
-* `PAGE_URL`: The URL of the Confluence page to update.
+### Linting & Formatting
 
-#### `convert`
-
-Converts a local markdown file to Confluence storage format and saves it locally without uploading.
-
-**Example:**
+This project uses `pre-commit` to enforce code style.
 
 ```bash
-LOG_LEVEL='INFO' PYTHONPATH=./src uv run python -m confluence_agent.cli convert 'path/to/your/document.md' 'path/to/output/dir'
+pre-commit install
+pre-commit run --all-files
 ```
 
-**Arguments:**
-
-* `MARKDOWN_PATH`: The local path to the markdown file.
-* `OUTPUT_DIR`: The directory to save the converted file and any generated diagrams.
-
-### Interacting with the Agent
-
-When running as an MCP server, the agent exposes the `update_confluence_page` tool, which can be invoked via an MCP client or a direct HTTP request.
-
-#### Tool: `update_confluence_page`
-
-Updates a Confluence page with the content of a markdown string. This tool performs the same intelligent merging as the `update` CLI command.
-
-**Input:**
-
-* `markdown_content` (string): The markdown content to update the page with.
-* `page_url` (string): The URL of the target Confluence page.
-* `provider` (string): The LLM provider to use (`openai` or `google`).
-
-**Example using `curl`:**
+### Running Tests
 
 ```bash
-curl -X POST http://localhost:8000/tools/update_confluence_page/invoke \
--H "Content-Type: application/json" \
--d '{
-    "input": {
-        "markdown_content": "# My New Section\n\nThis is the updated content.",
-        "page_url": "https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Your+Page+Title",
-        "provider": "openai"
-    }
-}'
+uv run pytest
 ```
 
-Make sure to replace the `page_url` with the URL of your target Confluence page and modify the `markdown_content` with your desired input.
+### Re-installing CLI
 
-## Developer Notes
-
-When modifying the command-line interface, particularly `src/confluence_agent/cli.py`, you may need to force a reinstallation of the package for your changes to take effect on the `confluence-agent` command. This is because the entrypoint script is generated during installation.
-
-You can do this by running:
+If modifying `src/confluence_agent/cli.py`, re-install the package to update the `confluence-agent` entrypoint:
 
 ```bash
 uv pip uninstall confluence-agent && uv pip install -e '.[dev]'
