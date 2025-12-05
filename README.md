@@ -44,12 +44,50 @@ attachments, and inline comments by leveraging an LLM.
     Edit `.env` with your Confluence URL, username, API token, and OpenAI API
     key.
 
+## Docker
+
+This project includes a `Dockerfile` for building a container image with all the necessary dependencies, including Python, Java, PlantUML, and Pandoc.
+
+### Automated Builds
+
+A GitHub Actions workflow is configured to automatically build and publish the Docker image to the GitHub Container Registry. The image is tagged with the short Git SHA of the commit.
+
+You can find the published images here:
+[https://github.com/users/mstump/packages/container/package/confluence-workflow](https://github.com/users/mstump/packages/container/package/confluence-workflow)
+
+### Building the Image Manually
+
+To build the Docker image locally, run the following command from the root of the project:
+
+```bash
+docker build -t confluence-agent .
+```
+
+### Running the Container
+
+You can run the `confluence-agent` CLI from within the container. You'll need to pass in your environment variables. You can do this with an `.env` file and the `--env-file` flag.
+
+```bash
+docker run --rm -it --env-file .env confluence-agent [COMMAND] [ARGS]
+```
+
+For example, to run the `update` command:
+
+```bash
+docker run --rm -it \
+  --env-file .env \
+  -v "$(pwd)/path/to/your/document.md:/app/document.md" \
+  confluence-agent update /app/document.md 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Your+Page+Title'
+```
+
+Note that you will need to mount any local files you want to access as a volume.
+
 ## Verified LLM Providers
 
 This workflow has been verified with the following LLM provider and model:
 
 * **Provider**: `openai`
-* **Model**: `gpt-5-nano`
+* **Model**: `gpt-5`
 
 Note: When using Google's models, `gemini-2.5-flash-lite` produced unsatisfactory results, and other Google models have not yet been tested.
 

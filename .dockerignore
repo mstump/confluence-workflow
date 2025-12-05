@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile
+
+# Python
+**/.venv
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+*.egg-info
+
+# Project specific
+.pytest_cache
+.mypy_cache
+tests/
+tmp/
+README.md
+AGENTS.md
+mcp_agent.config.yaml
+.github/
+.env
+.env.example
+.markdownlint.json
+.pre-commit-config.yaml
+.gitignore
+pytest.ini
+AGENTS.md
