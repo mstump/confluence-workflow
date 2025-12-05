@@ -136,7 +136,7 @@ The server will run on `localhost:8000` (default).
 
 ## Docker Support
 
-A Docker image is available containing all dependencies (Python, Java, PlantUML, Pandoc).
+A Docker image is available containing all dependencies (Python, Java, PlantUML).
 
 - **Registry**: [ghcr.io/mstump/confluence-workflow](https://github.com/users/mstump/packages/container/package/confluence-workflow)
 - **Build**: `docker build -t confluence-agent .`
