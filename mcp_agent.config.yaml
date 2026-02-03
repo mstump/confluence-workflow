@@ -8,5 +8,5 @@ logger:
 
 otel:
   enabled: true
-  # exporters:
-  #   - console
+  exporters:
+    - console

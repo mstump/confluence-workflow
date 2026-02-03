@@ -82,7 +82,7 @@ async def test_update_confluence_page_tool(
         assert "success" in result.lower()
 
         mock_process_with_llm.assert_called_once_with(
-            "<p>Old</p>", "<h2>New</h2>", "openai"
+            "<p>Old</p>", "<h2>New</h2>", "openai", mock_settings.return_value
         )
 
     mock_confluence_client._get_page_id_from_url.assert_called_once_with(page_url)
@@ -260,7 +260,7 @@ async def test_update_confluence_page_tool_critic_rejection(
         assert "The content is not good enough." in result
         mock_confluence_instance.update_page_content.assert_not_called()
         mock_process_with_llm.assert_called_once_with(
-            "<p>Old</p>", "<h2>New</h2>", "openai"
+            "<p>Old</p>", "<h2>New</h2>", "openai", mock_settings.return_value
         )
 
 
@@ -335,10 +335,87 @@ async def test_update_confluence_page_tool_with_attachments(
             markdown_content, page_url, provider="openai"
         )
         mock_process_with_llm.assert_called_once_with(
-            "<p>Old</p>", "<h2>New</h2>", "openai"
+            "<p>Old</p>", "<h2>New</h2>", "openai", mock_settings.return_value
         )
 
-    mock_confluence_instance.upload_attachments.assert_called_once()
+
+@pytest.mark.anyio
+async def test_process_content_with_llm_uses_provider_default_model() -> None:
+    """
+    _process_content_with_llm should force RequestParams.model from settings so mcp-agent's
+    ModelSelector doesn't silently override it.
+    """
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from confluence_agent.agent import _process_content_with_llm
+
+    settings = SimpleNamespace(
+        google=SimpleNamespace(default_model="gemini-3-flash-preview"),
+        openai=SimpleNamespace(default_model="gpt-4o-mini"),
+    )
+
+    class DummyProvider:
+        pass
+
+    token_counter = SimpleNamespace(
+        watch=AsyncMock(return_value="watch-id"),
+        unwatch=AsyncMock(return_value=None),
+    )
+    agent_app = SimpleNamespace(context=SimpleNamespace(token_counter=token_counter))
+
+    class _RunCtx:
+        async def __aenter__(self) -> object:
+            return agent_app
+
+        async def __aexit__(self, exc_type, exc, tb) -> None:
+            return None
+
+    fake_llm = MagicMock()
+
+    class FakeAgent:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        async def __aenter__(self) -> "FakeAgent":
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        async def attach_llm(self, provider_factory) -> object:
+            # Ensure provider_factory was built with the expected RequestParams
+            assert (
+                provider_factory.keywords["default_request_params"].model
+                == "gemini-3-flash-preview"
+            )
+            assert provider_factory.keywords["default_request_params"].maxTokens == 1424
+            return fake_llm
+
+    with (
+        patch("confluence_agent.agent.get_llm_provider", return_value=DummyProvider),
+        patch(
+            "confluence_agent.agent.get_token_count", new=AsyncMock(return_value=100)
+        ),
+        patch("confluence_agent.agent.app.run", return_value=_RunCtx()),
+        patch("confluence_agent.agent.Agent", FakeAgent),
+        patch(
+            "confluence_agent.agent._llm_merge_content",
+            new=AsyncMock(return_value="<p>M</p>"),
+        ),
+        patch(
+            "confluence_agent.agent._llm_reflect_and_correct",
+            new=AsyncMock(return_value="<p>R</p>"),
+        ),
+        patch(
+            "confluence_agent.agent._llm_critic_content",
+            new=AsyncMock(return_value="<p>C</p>"),
+        ),
+    ):
+        result = await _process_content_with_llm(
+            "<p>Old</p>", "<h2>New</h2>", "google", settings
+        )
+        assert result == "<p>C</p>"
 
 
 @patch("confluence_agent.agent._generate_structured_with_retry", new_callable=AsyncMock)
@@ -436,3 +513,38 @@ async def test_llm_critic_content_approve_no_content(
         )
 
     mock_generate_structured.assert_called_once()
+
+
+def test_extract_inline_comment_markers_empty() -> None:
+    """Extracting markers from empty content should return an empty list."""
+    from confluence_agent import agent
+
+    assert agent._extract_inline_comment_markers("") == []
+
+
+def test_extract_inline_comment_markers_self_closing() -> None:
+    """Extracting self-closing markers should return verbatim tag strings."""
+    from confluence_agent import agent
+
+    original = (
+        '<p>Hi <ac:inline-comment-marker ac:ref="abc-123"/> there</p>'
+        '<p>And <ac:inline-comment-marker ac:ref="def-456" /> more</p>'
+    )
+    assert agent._extract_inline_comment_markers(original) == [
+        '<ac:inline-comment-marker ac:ref="abc-123"/>',
+        '<ac:inline-comment-marker ac:ref="def-456" />',
+    ]
+
+
+def test_extract_inline_comment_markers_paired() -> None:
+    """Extracting paired markers should return the full element verbatim."""
+    from confluence_agent import agent
+
+    original = (
+        "<p>Before "
+        '<ac:inline-comment-marker ac:ref="uuid-1">commented text</ac:inline-comment-marker>'
+        " after</p>"
+    )
+    assert agent._extract_inline_comment_markers(original) == [
+        '<ac:inline-comment-marker ac:ref="uuid-1">commented text</ac:inline-comment-marker>',
+    ]

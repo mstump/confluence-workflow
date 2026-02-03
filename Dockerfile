@@ -4,17 +4,25 @@ FROM python:${PYTHON_VERSION}
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 ENV PLANTUML_JAR_PATH=/usr/share/plantuml/plantuml.jar
 ENV VIRTUAL_ENV=/app/.venv
 ENV PATH="${VIRTUAL_ENV}/bin:${JAVA_HOME}/bin:${PATH}"
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
-# Install system dependencies including Java, PlantUML, and Pandoc
+# Install system dependencies including Java, PlantUML, Node.js, and Chromium
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-21-jre \
     plantuml \
     wget \
+    nodejs \
+    npm \
+    chromium \
+    fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
+
+# Install mermaid-cli
+RUN npm install -g @mermaid-js/mermaid-cli
 
 # Set work directory
 WORKDIR /app

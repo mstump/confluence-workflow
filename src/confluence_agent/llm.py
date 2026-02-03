@@ -1,8 +1,11 @@
-from typing import Type
+from typing import Any, Type
 from tiktoken import get_encoding
 from mcp_agent.workflows.llm.augmented_llm import AugmentedLLM
-from mcp_agent.workflows.llm.augmented_llm_openai import OpenAIAugmentedLLM
-from mcp_agent.workflows.llm.augmented_llm_google import GoogleAugmentedLLM
+
+from confluence_agent.patched_providers import (
+    ChunkAwareGoogleAugmentedLLM,
+    ChunkAwareOpenAIAugmentedLLM,
+)
 
 
 class UnsupportedProviderError(Exception):
@@ -11,7 +14,7 @@ class UnsupportedProviderError(Exception):
     pass
 
 
-def get_llm_provider(provider_name: str) -> Type[AugmentedLLM]:
+def get_llm_provider(provider_name: str) -> Type[AugmentedLLM[Any, Any]]:
     """
     Factory function to get an instance of an LLM provider.
     Args:
@@ -22,9 +25,9 @@ def get_llm_provider(provider_name: str) -> Type[AugmentedLLM]:
         UnsupportedProviderError: If the provider is not supported.
     """
     if provider_name == "openai":
-        return OpenAIAugmentedLLM
+        return ChunkAwareOpenAIAugmentedLLM
     if provider_name == "google":
-        return GoogleAugmentedLLM
+        return ChunkAwareGoogleAugmentedLLM
     raise UnsupportedProviderError(f"Provider '{provider_name}' is not supported.")
 
 

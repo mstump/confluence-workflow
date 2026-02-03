@@ -88,6 +88,51 @@ def _is_content_empty(content: str) -> bool:
     return False
 
 
+def _extract_inline_comment_markers(original_content: str) -> list[str]:
+    """
+    Extracts Confluence inline comment marker elements verbatim from storage-format XML.
+
+    Confluence uses `<ac:inline-comment-marker>` to represent inline comments. In practice,
+    these markers can appear either as:
+    - Paired tags: `<ac:inline-comment-marker ...>...</ac:inline-comment-marker>`
+    - Self-closing tags: `<ac:inline-comment-marker .../>` (sometimes with whitespace: `... />`)
+
+    This helper returns the *exact substring* matches in document order so they can be
+    echoed into prompts as immutable tokens.
+    """
+    if not original_content:
+        return []
+
+    # Prefer a single combined regex so results are returned in source order.
+    pattern = re.compile(
+        r"("
+        r"<ac:inline-comment-marker\b[^>]*?/>"
+        r"|"
+        r"<ac:inline-comment-marker\b[^>]*?>.*?</ac:inline-comment-marker>"
+        r")",
+        flags=re.DOTALL,
+    )
+    return [m.group(0) for m in pattern.finditer(original_content)]
+
+
+def _format_inline_comment_markers_section(original_content: str) -> str:
+    """
+    Formats extracted inline comment markers for inclusion in prompts.
+
+    We keep this as plain text (not XML code fences) so the LLM is more likely to treat
+    each line as a must-preserve token.
+    """
+    markers = _extract_inline_comment_markers(original_content)
+    if not markers:
+        return "INLINE_COMMENT_MARKERS_FROM_ORIGINAL: (none)"
+
+    lines = [
+        "INLINE_COMMENT_MARKERS_FROM_ORIGINAL (verbatim; must appear exactly once):"
+    ]
+    lines.extend(f"- {marker}" for marker in markers)
+    return "\n".join(lines)
+
+
 async def _llm_merge_content(
     llm: AugmentedLLM[Any, Any], original_content: str, new_content_storage: str
 ) -> str:
@@ -96,6 +141,9 @@ async def _llm_merge_content(
     prompt = MERGE_PROMPT.format(
         original_content=original_content,
         new_content_storage=new_content_storage,
+        inline_comment_markers_from_original=_format_inline_comment_markers_section(
+            original_content
+        ),
     )
     merged_response = await _generate_structured_with_retry(
         llm, prompt, ConfluenceContent
@@ -118,6 +166,9 @@ async def _llm_reflect_and_correct(
         original_content=original_content,
         new_content_storage=new_content_storage,
         merged_content=merged_content,
+        inline_comment_markers_from_original=_format_inline_comment_markers_section(
+            original_content
+        ),
     )
     corrected_response = await _generate_structured_with_retry(
         llm, prompt, ConfluenceContent
@@ -140,6 +191,9 @@ async def _llm_critic_content(
         original_content=original_content,
         new_content_storage=new_content_storage,
         final_proposed_content=corrected_content,
+        inline_comment_markers_from_original=_format_inline_comment_markers_section(
+            original_content
+        ),
     )
     critic_response = await _generate_structured_with_retry(llm, prompt, CriticResponse)
     logger.info(f"Critic response: {critic_response}")
@@ -166,6 +220,7 @@ async def _process_content_with_llm(
     original_content: str,
     new_content_storage: str,
     provider: str,
+    settings: Settings,
 ) -> str:
     """
     Processes the content using an LLM agent with a merge-reflect-critic chain.
@@ -190,12 +245,26 @@ async def _process_content_with_llm(
                 # Calculate token count for scaling max_tokens
                 content_to_merge = original_content + new_content_storage
                 content_token_count = await get_token_count(provider, content_to_merge)
-                scaled_max_tokens = int(content_token_count * 1.5) + 1024
+                scaled_max_tokens = int(content_token_count * 4) + 1024
                 logger.info(f"Scaled max_tokens to {scaled_max_tokens}")
+
+                # IMPORTANT: force the configured default model into RequestParams.model.
+                # Otherwise mcp-agent's ModelSelector may choose a different model
+                # (e.g. gemini-2.5-flash) even when GOOGLE__DEFAULT_MODEL is set.
+                default_model: str | None = None
+                if provider == "openai":
+                    default_model = getattr(settings.openai, "default_model", None)
+                elif provider == "google":
+                    default_model = getattr(settings.google, "default_model", None)
+
+                default_request_params = RequestParams(
+                    maxTokens=scaled_max_tokens,
+                    model=default_model,
+                )
 
                 ConfiguredLLMProvider = functools.partial(
                     LLMProviderClass,
-                    default_request_params=RequestParams(maxTokens=scaled_max_tokens),
+                    default_request_params=default_request_params,
                 )
 
                 llm = await llm_agent.attach_llm(ConfiguredLLMProvider)
@@ -271,7 +340,7 @@ async def update_confluence_page(
                 final_content_storage = new_content_storage
             else:
                 final_content_storage = await _process_content_with_llm(
-                    original_content, new_content_storage, provider
+                    original_content, new_content_storage, provider, settings
                 )
 
             if attachments:

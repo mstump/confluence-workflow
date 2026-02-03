@@ -1,6 +1,9 @@
 import pytest
-from mcp_agent.workflows.llm.augmented_llm_openai import OpenAIAugmentedLLM
-from mcp_agent.workflows.llm.augmented_llm_google import GoogleAugmentedLLM
+
+from confluence_agent.patched_providers import (
+    ChunkAwareGoogleAugmentedLLM,
+    ChunkAwareOpenAIAugmentedLLM,
+)
 
 from confluence_agent.llm import (
     get_llm_provider,
@@ -11,13 +14,13 @@ from confluence_agent.llm import (
 def test_get_llm_provider_openai() -> None:
     """Tests that the correct provider is returned for 'openai'."""
     provider_class = get_llm_provider("openai")
-    assert provider_class == OpenAIAugmentedLLM
+    assert provider_class == ChunkAwareOpenAIAugmentedLLM
 
 
 def test_get_llm_provider_google() -> None:
     """Tests that the correct provider is returned for 'google'."""
     provider_class = get_llm_provider("google")
-    assert provider_class == GoogleAugmentedLLM
+    assert provider_class == ChunkAwareGoogleAugmentedLLM
 
 
 def test_get_llm_provider_unsupported() -> None:

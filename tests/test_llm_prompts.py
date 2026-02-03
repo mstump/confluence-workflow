@@ -57,3 +57,39 @@ def test_prompts_strict_semantic_tags() -> None:
 
     # REFLECTION_PROMPT
     assert "match exactly those in `NEW_CONTENT`" in REFLECTION_PROMPT
+
+
+def test_prompts_inline_comment_marker_invariants() -> None:
+    """
+    Tests that all prompts include hard invariants for preserving
+    `<ac:inline-comment-marker>` tags.
+
+    These checks are intended to prevent providers (notably Gemini) from dropping
+    Confluence inline-comment markers during merge/reflection/critic steps.
+    """
+    required_snippets = [
+        "Inline comment marker invariants (MUST HOLD)",
+        "Treat every `<ac:inline-comment-marker",
+        "immutable token",
+        "byte-for-byte",
+        "same count",
+        "Do not rename namespaces",
+    ]
+    for prompt in (MERGE_PROMPT, REFLECTION_PROMPT, CRITIC_PROMPT):
+        for snippet in required_snippets:
+            assert snippet.lower() in prompt.lower()
+
+
+def test_prompts_inline_comment_marker_self_check() -> None:
+    """Tests that all prompts require a self-check for missing markers."""
+    required_snippets = [
+        "Self-check before responding",
+        "Verify",
+        "present",
+        "exactly once",
+        "If any are missing",
+        "reinsert",
+    ]
+    for prompt in (MERGE_PROMPT, REFLECTION_PROMPT, CRITIC_PROMPT):
+        for snippet in required_snippets:
+            assert snippet.lower() in prompt.lower()

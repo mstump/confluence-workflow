@@ -1,9 +1,5 @@
-from mcp_agent.config import (
-    Settings as McpSettings,
-    OpenAISettings,
-    GoogleSettings,
-    SettingsConfigDict,
-)
+from mcp_agent.config import Settings as McpSettings, OpenAISettings, GoogleSettings
+from pydantic_settings import SettingsConfigDict
 
 
 class Settings(McpSettings):

@@ -55,6 +55,12 @@ exclude = "tests/"
 module = [
     "pydantic_settings",
     "mcp_agent.*",
+    "atlassian",
+    "atlassian.*",
+    "openai",
+    "openai.*",
+    "google",
+    "google.*",
     "pytest",
     "anyio"
 ]
