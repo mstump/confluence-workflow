@@ -42,9 +42,11 @@ async def test_update_confluence_page_tool(
     mock_settings.return_value.openai_api_key = "key"
     mock_settings.return_value.openai_model = "model"
 
+    # Content with inline comment marker to trigger LLM processing
+    original_content_with_comment = '<p>Old <ac:inline-comment-marker ac:ref="abc-123">text</ac:inline-comment-marker></p>'
     mock_confluence_instance = mock_confluence_client.return_value
     mock_confluence_instance.get_page_content_and_version.return_value = (
-        "<p>Old</p>",
+        original_content_with_comment,
         1,
         "Title",
     )
@@ -82,7 +84,10 @@ async def test_update_confluence_page_tool(
         assert "success" in result.lower()
 
         mock_process_with_llm.assert_called_once_with(
-            "<p>Old</p>", "<h2>New</h2>", "openai", mock_settings.return_value
+            original_content_with_comment,
+            "<h2>New</h2>",
+            "openai",
+            mock_settings.return_value,
         )
 
     mock_confluence_client._get_page_id_from_url.assert_called_once_with(page_url)
@@ -198,6 +203,56 @@ async def test_update_confluence_page_tool_empty_p_tag(
 @patch("confluence_agent.agent.convert_markdown_to_storage")
 @patch("confluence_agent.agent.get_llm_provider")
 @pytest.mark.anyio
+async def test_update_confluence_page_tool_no_inline_comments(
+    mock_get_llm_provider: MagicMock,
+    mock_convert_markdown_to_storage: MagicMock,
+    mock_confluence_client: MagicMock,
+    mock_settings: MagicMock,
+    app_instance: MCPApp,
+) -> None:
+    """
+    Tests that the LLM is bypassed when the original page has content but no inline comments.
+    """
+    # Setup mocks
+    mock_settings.return_value.confluence_url = "https://fake.url"
+    mock_settings.return_value.confluence_username = "user"
+    mock_settings.return_value.confluence_api_token = "token"
+    mock_settings.return_value.llm_provider = "openai"
+
+    mock_confluence_instance = mock_confluence_client.return_value
+    mock_confluence_instance.get_page_content_and_version.return_value = (
+        "<p>Some existing content without comments</p>",
+        1,
+        "Page Without Comments",
+    )
+
+    mock_confluence_client._get_page_id_from_url.return_value = "12345"
+    mock_convert_markdown_to_storage.return_value = ("<h2>New Content</h2>", [])
+
+    mock_llm_provider = MagicMock()
+    mock_get_llm_provider.return_value = mock_llm_provider
+
+    from confluence_agent import agent
+
+    markdown_content = "# New Content"
+    page_url = "https://fake.url/wiki/spaces/SPACE/pages/12345/Page+Without+Comments"
+
+    await agent.update_confluence_page(markdown_content, page_url, provider="openai")
+
+    # LLM should not be called since there are no inline comments to preserve
+    mock_get_llm_provider.assert_not_called()
+    mock_llm_provider.merge_content.assert_not_called()
+    # Page should be updated with new content directly
+    mock_confluence_instance.update_page_content.assert_called_once_with(
+        "12345", "Page Without Comments", "<h2>New Content</h2>", 2
+    )
+
+
+@patch("confluence_agent.agent.Settings")
+@patch("confluence_agent.agent.ConfluenceClient", autospec=True)
+@patch("confluence_agent.agent.convert_markdown_to_storage")
+@patch("confluence_agent.agent.get_llm_provider")
+@pytest.mark.anyio
 async def test_update_confluence_page_tool_critic_rejection(
     mock_get_llm_provider: MagicMock,
     mock_convert_markdown_to_storage: MagicMock,
@@ -216,9 +271,11 @@ async def test_update_confluence_page_tool_critic_rejection(
     mock_settings.return_value.openai_api_key = "key"
     mock_settings.return_value.openai_model = "model"
 
+    # Content with inline comment marker to trigger LLM processing
+    original_content_with_comment = '<p>Old <ac:inline-comment-marker ac:ref="abc-123">text</ac:inline-comment-marker></p>'
     mock_confluence_instance = mock_confluence_client.return_value
     mock_confluence_instance.get_page_content_and_version.return_value = (
-        "<p>Old</p>",
+        original_content_with_comment,
         1,
         "Title",
     )
@@ -260,7 +317,10 @@ async def test_update_confluence_page_tool_critic_rejection(
         assert "The content is not good enough." in result
         mock_confluence_instance.update_page_content.assert_not_called()
         mock_process_with_llm.assert_called_once_with(
-            "<p>Old</p>", "<h2>New</h2>", "openai", mock_settings.return_value
+            original_content_with_comment,
+            "<h2>New</h2>",
+            "openai",
+            mock_settings.return_value,
         )
 
 
@@ -287,9 +347,11 @@ async def test_update_confluence_page_tool_with_attachments(
     mock_settings.return_value.openai_api_key = "key"
     mock_settings.return_value.openai_model = "model"
 
+    # Content with inline comment marker to trigger LLM processing
+    original_content_with_comment = '<p>Old <ac:inline-comment-marker ac:ref="abc-123">text</ac:inline-comment-marker></p>'
     mock_confluence_instance = mock_confluence_client.return_value
     mock_confluence_instance.get_page_content_and_version.return_value = (
-        "<p>Old</p>",
+        original_content_with_comment,
         1,
         "Title",
     )
@@ -335,7 +397,10 @@ async def test_update_confluence_page_tool_with_attachments(
             markdown_content, page_url, provider="openai"
         )
         mock_process_with_llm.assert_called_once_with(
-            "<p>Old</p>", "<h2>New</h2>", "openai", mock_settings.return_value
+            original_content_with_comment,
+            "<h2>New</h2>",
+            "openai",
+            mock_settings.return_value,
         )
 
 

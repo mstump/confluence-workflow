@@ -332,10 +332,16 @@ async def update_confluence_page(
             logger.debug(f"Original page content: {original_content}")
 
             # 5. Use LLM to merge new content, or upload directly if page is empty
+            #    or has no inline comments to preserve
             final_content_storage: str
             if _is_content_empty(original_content):
                 logger.info(
                     "Original page is empty. Bypassing LLM and using new content directly."
+                )
+                final_content_storage = new_content_storage
+            elif not _extract_inline_comment_markers(original_content):
+                logger.info(
+                    "No inline comments in original content. Bypassing LLM and using new content directly."
                 )
                 final_content_storage = new_content_storage
             else:
