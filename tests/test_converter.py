@@ -90,3 +90,49 @@ A -> B
         mock_doc_instance.xhtml.assert_called_once()
         assert (tmp_path / "diagram_1.svg").exists()
         assert (tmp_path / "_processed.md").exists()
+
+
+def test_convert_markdown_to_storage_removes_h1(mock_settings, tmp_path):
+    """
+    Tests that the first h1 header is removed from the storage format.
+    Confluence pages have their title outside the content body.
+    """
+    markdown_content = "# Document Title\n\nSome content here."
+    with patch(
+        "confluence_agent.converter.ConfluenceDocument"
+    ) as mock_confluence_document:
+        mock_doc_instance = MagicMock()
+        mock_doc_instance.xhtml.return_value = (
+            "<h1>Document Title</h1><p>Some content here.</p>"
+        )
+        mock_confluence_document.return_value = mock_doc_instance
+
+        storage_format, attachments = convert_markdown_to_storage(
+            markdown_content, mock_settings, tmp_path
+        )
+
+        assert "<h1>" not in storage_format
+        assert "Document Title" not in storage_format
+        assert "<p>Some content here.</p>" in storage_format
+        assert len(attachments) == 0
+
+
+def test_convert_markdown_to_storage_removes_only_first_h1(mock_settings, tmp_path):
+    """
+    Tests that only the first h1 header is removed, preserving subsequent h1 tags.
+    """
+    markdown_content = "# Title\n\n# Another H1\n\nContent."
+    with patch(
+        "confluence_agent.converter.ConfluenceDocument"
+    ) as mock_confluence_document:
+        mock_doc_instance = MagicMock()
+        mock_doc_instance.xhtml.return_value = (
+            "<h1>Title</h1><h1>Another H1</h1><p>Content.</p>"
+        )
+        mock_confluence_document.return_value = mock_doc_instance
+
+        storage_format, attachments = convert_markdown_to_storage(
+            markdown_content, mock_settings, tmp_path
+        )
+
+        assert storage_format == "<h1>Another H1</h1><p>Content.</p>"

@@ -138,6 +138,9 @@ def convert_markdown_to_storage(
     # Modify image macros to scale to 100% width
     storage_format = re.sub(r"<ac:image", r'<ac:image ac:width="100%"', storage_format)
 
+    # Remove the first h1 header - Confluence pages have their title outside the content body
+    storage_format = re.sub(r"<h1>.*?</h1>\s*", "", storage_format, count=1)
+
     return storage_format, attachments
 
 
