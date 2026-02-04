@@ -68,11 +68,13 @@ def process_markdown_puml(
 ) -> Tuple[str, List[Tuple[str, bytes]]]:
     """
     Processes markdown content to render PlantUML diagrams and replace
-    them with image tags.
+    them with image tags. Supports both ```plantuml and ```puml fenced blocks.
     """
-    puml_blocks = re.findall(r"```plantuml\n(.*?)\n```", markdown_content, re.DOTALL)
+    puml_blocks = re.findall(
+        r"```(plantuml|puml)\n(.*?)\n```", markdown_content, re.DOTALL
+    )
     attachments = []
-    for i, puml_block in enumerate(puml_blocks):
+    for i, (lang, puml_block) in enumerate(puml_blocks):
         svg_content = render_puml_to_svg(puml_block, settings)
         image_name = f"diagram_{i + 1}.svg"
         attachments.append((image_name, svg_content))
@@ -82,7 +84,7 @@ def process_markdown_puml(
             f.write(svg_content)
 
         image_tag = f"![{image_name}](./{image_name})"
-        original_block = f"```plantuml\n{puml_block}\n```"
+        original_block = f"```{lang}\n{puml_block}\n```"
         replacement = f"{image_tag}\n\n{original_block}"
         markdown_content = markdown_content.replace(original_block, replacement)
     return markdown_content, attachments

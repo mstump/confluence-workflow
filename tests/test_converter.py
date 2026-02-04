@@ -55,6 +55,61 @@ A -> B
         assert (tmp_path / "diagram_1.svg").exists()
 
 
+def test_process_markdown_puml_supports_puml_tag(mock_settings, tmp_path):
+    """
+    Tests that ```puml blocks are also processed (not just ```plantuml).
+    """
+    markdown_content = """
+# Title
+
+```puml
+@startuml
+A -> B
+@enduml
+```
+"""
+    with patch("confluence_agent.converter.render_puml_to_svg") as mock_render:
+        mock_render.return_value = b"<svg>diagram</svg>"
+        processed_markdown, attachments = process_markdown_puml(
+            markdown_content, mock_settings, tmp_path
+        )
+
+        assert "![diagram_1.svg](./diagram_1.svg)" in processed_markdown
+        assert "```puml\n@startuml\nA -> B\n@enduml\n```" in processed_markdown
+        assert len(attachments) == 1
+        assert (tmp_path / "diagram_1.svg").exists()
+
+
+def test_process_markdown_puml_mixed_tags(mock_settings, tmp_path):
+    """
+    Tests that both ```plantuml and ```puml blocks are processed in the same document.
+    """
+    markdown_content = """
+```plantuml
+@startuml
+A -> B
+@enduml
+```
+
+```puml
+@startuml
+C -> D
+@enduml
+```
+"""
+    with patch("confluence_agent.converter.render_puml_to_svg") as mock_render:
+        mock_render.return_value = b"<svg>diagram</svg>"
+        processed_markdown, attachments = process_markdown_puml(
+            markdown_content, mock_settings, tmp_path
+        )
+
+        assert "![diagram_1.svg](./diagram_1.svg)" in processed_markdown
+        assert "![diagram_2.svg](./diagram_2.svg)" in processed_markdown
+        assert "```plantuml\n@startuml\nA -> B\n@enduml\n```" in processed_markdown
+        assert "```puml\n@startuml\nC -> D\n@enduml\n```" in processed_markdown
+        assert len(attachments) == 2
+
+
 def test_convert_markdown_to_storage(mock_settings, tmp_path):
     markdown_content = """
 # Title
