@@ -20,7 +20,7 @@ This workflow solves both of these issues:
 
 - **Intelligent Merging**: Uses a multi-step LLM process (Merge -> Reflect -> Critic) to update pages without overwriting existing context.
 - **Comment Preservation**: Retains the location context of inline comments on Confluence pages, solving a common pain point when publishing from Markdown.
-- **Diagram Support**: Automatically renders [PlantUML](https://plantuml.com/) diagrams as SVGs and uploads them as attachments.
+- **Diagram Support**: Automatically renders [PlantUML](https://plantuml.com/) and [Mermaid](https://mermaid.js.org/) diagrams as SVGs and uploads them as attachments.
 - **Markdown Compatibility**: Built on [markdown-to-confluence](https://pypi.org/project/markdown-to-confluence/) for robust conversion to Confluence Storage Format.
 
 ## Prerequisites
@@ -28,6 +28,7 @@ This workflow solves both of these issues:
 - **Python 3.10+**
 - **Java**: Runtime environment (JRE) is required for PlantUML.
 - **PlantUML**: `plantuml.jar` must be available (default expectation is `plantuml.jar` in the project root or configurable via `.env`).
+- **Node.js & mermaid-cli**: Required for Mermaid diagram rendering. Install with `npm install -g @mermaid-js/mermaid-cli`.
 - **uv**: Recommended for dependency management (or standard pip/venv).
 - **Confluence Cloud**: Access to an instance with API token credentials.
 - **LLM API Key**: Access to an LLM provider (OpenAI or Google).
@@ -136,7 +137,7 @@ The server will run on `localhost:8000` (default).
 
 ## Docker Support
 
-A Docker image is available containing all dependencies (Python, Java, PlantUML).
+A Docker image is available containing all dependencies (Python, Java, PlantUML, mermaid-cli).
 
 - **Registry**: [ghcr.io/mstump/confluence-workflow](https://github.com/users/mstump/packages/container/package/confluence-workflow)
 - **Build**: `docker build -t confluence-agent .`

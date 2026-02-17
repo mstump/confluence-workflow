@@ -18,6 +18,7 @@ class Settings(McpSettings):
     confluence_api_token: str
     plantuml_jar_path: str = "plantuml.jar"
     plantuml_java_path: str = "java"
+    mermaid_cli_path: str = "mmdc"
 
     # LLM Provider Configuration
     llm_provider: str = "openai"

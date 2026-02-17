@@ -2,10 +2,12 @@ from typing import Any, Type
 from tiktoken import get_encoding
 from mcp_agent.workflows.llm.augmented_llm import AugmentedLLM
 
-from confluence_agent.patched_providers import (
-    ChunkAwareGoogleAugmentedLLM,
-    ChunkAwareOpenAIAugmentedLLM,
-)
+# from confluence_agent.patched_providers import (
+#     ChunkAwareGoogleAugmentedLLM,
+#     ChunkAwareOpenAIAugmentedLLM,
+# )
+from mcp_agent.workflows.llm.augmented_llm_openai import OpenAIAugmentedLLM
+from mcp_agent.workflows.llm.augmented_llm_google import GoogleAugmentedLLM
 
 
 class UnsupportedProviderError(Exception):
@@ -25,9 +27,9 @@ def get_llm_provider(provider_name: str) -> Type[AugmentedLLM[Any, Any]]:
         UnsupportedProviderError: If the provider is not supported.
     """
     if provider_name == "openai":
-        return ChunkAwareOpenAIAugmentedLLM
+        return OpenAIAugmentedLLM
     if provider_name == "google":
-        return ChunkAwareGoogleAugmentedLLM
+        return GoogleAugmentedLLM
     raise UnsupportedProviderError(f"Provider '{provider_name}' is not supported.")
 
 

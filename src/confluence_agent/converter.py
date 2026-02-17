@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import subprocess
+import tempfile
 from typing import List, Tuple
 from xml.sax.saxutils import escape
 
@@ -90,15 +91,82 @@ def process_markdown_puml(
     return markdown_content, attachments
 
 
+def render_mermaid_to_svg(mermaid_content: str, settings: Settings) -> bytes:
+    """Renders Mermaid diagram content to SVG using mermaid-cli (mmdc)."""
+    with tempfile.NamedTemporaryFile(
+        suffix=".mmd", mode="w", encoding="utf-8", delete=False
+    ) as input_file:
+        input_file.write(mermaid_content)
+        input_path = input_file.name
+
+    output_path = input_path.replace(".mmd", ".svg")
+    try:
+        cmd = [settings.mermaid_cli_path, "-i", input_path, "-o", output_path]
+        subprocess.run(cmd, capture_output=True, check=True, text=False)
+        with open(output_path, "rb") as f:
+            return f.read()
+    except FileNotFoundError:
+        logger.error(
+            f"Mermaid CLI executable not found at: {settings.mermaid_cli_path}"
+        )
+        raise
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Mermaid rendering failed: {e.stderr.decode('utf-8')}")
+        raise
+    except Exception as e:
+        logger.error(
+            f"An unexpected error occurred during Mermaid rendering: {e}"
+        )
+        raise
+    finally:
+        for path in (input_path, output_path):
+            if os.path.exists(path):
+                os.unlink(path)
+
+
+def process_markdown_mermaid(
+    markdown_content: str,
+    settings: Settings,
+    work_dir: Path,
+    start_index: int = 0,
+) -> Tuple[str, List[Tuple[str, bytes]]]:
+    """
+    Processes markdown content to render Mermaid diagrams and replace
+    them with image tags. Uses start_index so diagram numbering continues
+    from where PlantUML left off.
+    """
+    mermaid_blocks = re.findall(
+        r"```mermaid\n(.*?)\n```", markdown_content, re.DOTALL
+    )
+    attachments = []
+    for i, mermaid_block in enumerate(mermaid_blocks):
+        svg_content = render_mermaid_to_svg(mermaid_block, settings)
+        image_name = f"diagram_{start_index + i + 1}.svg"
+        attachments.append((image_name, svg_content))
+
+        with open(work_dir / image_name, "wb") as f:
+            f.write(svg_content)
+
+        image_tag = f"![{image_name}](./{image_name})"
+        original_block = f"```mermaid\n{mermaid_block}\n```"
+        replacement = f"{image_tag}\n\n```\n{mermaid_block}\n```"
+        markdown_content = markdown_content.replace(original_block, replacement)
+    return markdown_content, attachments
+
+
 def convert_markdown_to_storage(
     markdown_content: str, settings: Settings, work_dir: Path
 ) -> Tuple[str, List[Tuple[str, bytes]]]:
     """
     Converts markdown to Confluence storage format, handling PlantUML diagrams.
     """
-    processed_markdown, attachments = process_markdown_puml(
+    processed_markdown, puml_attachments = process_markdown_puml(
         markdown_content, settings, work_dir
     )
+    processed_markdown, mermaid_attachments = process_markdown_mermaid(
+        processed_markdown, settings, work_dir, start_index=len(puml_attachments)
+    )
+    attachments = puml_attachments + mermaid_attachments
 
     processed_markdown_path = work_dir / "_processed.md"
     with open(processed_markdown_path, "w", encoding="utf-8") as f:
@@ -142,6 +210,17 @@ def convert_markdown_to_storage(
 
     # Remove the first h1 header - Confluence pages have their title outside the content body
     storage_format = re.sub(r"<h1>.*?</h1>\s*", "", storage_format, count=1)
+
+    # Wrap code blocks in expand macros so they are collapsed by default
+    storage_format = re.sub(
+        r"(<ac:structured-macro ac:name=\"code\".*?</ac:structured-macro>)",
+        r'<ac:structured-macro ac:name="expand">'
+        r'<ac:parameter ac:name="title">Source</ac:parameter>'
+        r"<ac:rich-text-body>\1</ac:rich-text-body>"
+        r"</ac:structured-macro>",
+        storage_format,
+        flags=re.DOTALL,
+    )
 
     return storage_format, attachments
 
