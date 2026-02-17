@@ -24,6 +24,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install mermaid-cli
 RUN npm install -g @mermaid-js/mermaid-cli
 
+# Create puppeteer config for running Chromium in Docker (no sandbox needed as root)
+RUN echo '{"args":["--no-sandbox"]}' > /etc/puppeteer.json
+ENV MERMAID_PUPPETEER_CONFIG=/etc/puppeteer.json
+
 # Set work directory
 WORKDIR /app
 
