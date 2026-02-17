@@ -19,6 +19,7 @@ class Settings(McpSettings):
     plantuml_jar_path: str = "plantuml.jar"
     plantuml_java_path: str = "java"
     mermaid_cli_path: str = "mmdc"
+    mermaid_puppeteer_config: str = ""
 
     # LLM Provider Configuration
     llm_provider: str = "openai"

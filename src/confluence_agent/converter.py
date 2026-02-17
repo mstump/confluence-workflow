@@ -102,6 +102,8 @@ def render_mermaid_to_svg(mermaid_content: str, settings: Settings) -> bytes:
     output_path = input_path.replace(".mmd", ".svg")
     try:
         cmd = [settings.mermaid_cli_path, "-i", input_path, "-o", output_path]
+        if settings.mermaid_puppeteer_config:
+            cmd.extend(["-p", settings.mermaid_puppeteer_config])
         subprocess.run(cmd, capture_output=True, check=True, text=False)
         with open(output_path, "rb") as f:
             return f.read()
