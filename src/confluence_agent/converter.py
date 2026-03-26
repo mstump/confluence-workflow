@@ -116,9 +116,7 @@ def render_mermaid_to_svg(mermaid_content: str, settings: Settings) -> bytes:
         logger.error(f"Mermaid rendering failed: {e.stderr.decode('utf-8')}")
         raise
     except Exception as e:
-        logger.error(
-            f"An unexpected error occurred during Mermaid rendering: {e}"
-        )
+        logger.error(f"An unexpected error occurred during Mermaid rendering: {e}")
         raise
     finally:
         for path in (input_path, output_path):
@@ -137,9 +135,7 @@ def process_markdown_mermaid(
     them with image tags. Uses start_index so diagram numbering continues
     from where PlantUML left off.
     """
-    mermaid_blocks = re.findall(
-        r"```mermaid\n(.*?)\n```", markdown_content, re.DOTALL
-    )
+    mermaid_blocks = re.findall(r"```mermaid\n(.*?)\n```", markdown_content, re.DOTALL)
     attachments = []
     for i, mermaid_block in enumerate(mermaid_blocks):
         svg_content = render_mermaid_to_svg(mermaid_block, settings)
@@ -156,12 +152,18 @@ def process_markdown_mermaid(
     return markdown_content, attachments
 
 
+def strip_obsidian_frontmatter(markdown_content: str) -> str:
+    """Strips YAML frontmatter (Obsidian metadata) from the top of a markdown file."""
+    return re.sub(r"^---\n.*?\n---\n?", "", markdown_content, count=1, flags=re.DOTALL)
+
+
 def convert_markdown_to_storage(
     markdown_content: str, settings: Settings, work_dir: Path
 ) -> Tuple[str, List[Tuple[str, bytes]]]:
     """
     Converts markdown to Confluence storage format, handling PlantUML diagrams.
     """
+    markdown_content = strip_obsidian_frontmatter(markdown_content)
     processed_markdown, puml_attachments = process_markdown_puml(
         markdown_content, settings, work_dir
     )
