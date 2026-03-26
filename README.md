@@ -21,6 +21,7 @@ This workflow solves both of these issues:
 - **Intelligent Merging**: Uses a multi-step LLM process (Merge -> Reflect -> Critic) to update pages without overwriting existing context.
 - **Comment Preservation**: Retains the location context of inline comments on Confluence pages, solving a common pain point when publishing from Markdown.
 - **Diagram Support**: Automatically renders [PlantUML](https://plantuml.com/) and [Mermaid](https://mermaid.js.org/) diagrams as SVGs and uploads them as attachments.
+- **Obsidian Support**: Automatically strips YAML frontmatter from Obsidian notes before conversion.
 - **Markdown Compatibility**: Built on [markdown-to-confluence](https://pypi.org/project/markdown-to-confluence/) for robust conversion to Confluence Storage Format.
 
 ## Prerequisites
