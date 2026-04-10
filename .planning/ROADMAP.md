@@ -30,12 +30,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Credentials are loaded from `ANTHROPIC_API_KEY` env var or `~/.claude/` config file without requiring both
   4. Confluence API errors (auth failure, 404, 409 version conflict) produce clear, actionable error messages -- not raw HTTP status codes
   5. A mock `ConfluenceApi` trait implementation can be substituted in tests without touching production code
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 01-01: Cargo workspace setup, module layout, error types, clap skeleton with subcommand stubs
-- [ ] 01-02: Config and credential loading (waterfall: CLI flag, env var, ~/.claude/ file) with Confluence connection settings
-- [ ] 01-03: Confluence REST API client (get page, update page, upload attachment, extract page ID from URL) with trait boundary and retry-on-409
+- [ ] 01-01-PLAN.md -- Cargo workspace setup, module layout, error types, clap skeleton with subcommand stubs
+- [ ] 01-02-PLAN.md -- Config and credential loading (waterfall: CLI flag, env var, .env, ~/.claude/ stub) with Confluence connection settings
+- [ ] 01-03-PLAN.md -- Confluence REST API client (get page, update page, upload attachment, extract page ID from URL) with trait boundary and retry-on-409
 
 **Flags:**
 - VERIFY BEFORE CODING: Inspect the actual `~/.claude/` directory on this machine to determine the credential file format (expected: `credentials.json` with an `oauth.accessToken` or `apiKey` field). The config module design depends on this.
