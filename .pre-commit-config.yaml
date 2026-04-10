@@ -17,6 +17,7 @@ repos:
       - id: markdownlint
         args:
           - --fix
+        exclude: ^\.planning/
   - repo: local
     hooks:
       - id: pytest
