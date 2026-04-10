@@ -1,0 +1,37 @@
+[package]
+name = "confluence-agent"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+
+[[bin]]
+name = "confluence-agent"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1.51", features = ["rt-multi-thread", "macros"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "rustls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+clap = { version = "4.6", features = ["derive", "env"] }
+thiserror = "2.0"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dirs = "6.0"
+dotenvy = "0.15"
+base64 = "0.22"
+async-trait = "0.1"
+regex = "1"
+
+[dev-dependencies]
+wiremock = "0.6"
+insta = { version = "1", features = ["json"] }
+assert_cmd = "2"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
