@@ -141,8 +141,8 @@ async fn test_plantuml_rendering_integration() {
     }
     let config = crate::config::DiagramConfig::default();
     let converter = MarkdownConverter::new(config);
-    let md = std::fs::read_to_string("tests/fixtures/plantuml_diagram.md").unwrap();
-    let result = converter.convert(&md).await.unwrap();
+    let md = include_str!("../../tests/fixtures/plantuml_diagram.md");
+    let result = converter.convert(md).await.unwrap();
     assert_eq!(result.attachments.len(), 1);
     assert_eq!(result.attachments[0].filename, "diagram_0.svg");
     assert_eq!(result.attachments[0].content_type, "image/svg+xml");
@@ -164,8 +164,8 @@ async fn test_mermaid_rendering_integration() {
     }
     let config = crate::config::DiagramConfig::default();
     let converter = MarkdownConverter::new(config);
-    let md = std::fs::read_to_string("tests/fixtures/mermaid_diagram.md").unwrap();
-    let result = converter.convert(&md).await;
+    let md = include_str!("../../tests/fixtures/mermaid_diagram.md");
+    let result = converter.convert(md).await;
     match result {
         Ok(result) => {
             assert_eq!(result.attachments.len(), 1);
@@ -197,8 +197,8 @@ async fn test_placeholder_replaced_with_ac_image() {
     }
     let config = crate::config::DiagramConfig::default();
     let converter = MarkdownConverter::new(config);
-    let md = std::fs::read_to_string("tests/fixtures/plantuml_diagram.md").unwrap();
-    let result = converter.convert(&md).await.unwrap();
+    let md = include_str!("../../tests/fixtures/plantuml_diagram.md");
+    let result = converter.convert(md).await.unwrap();
     assert!(result.storage_xml.contains("ac:image"));
     assert!(result.storage_xml.contains("ri:attachment"));
     assert!(result.storage_xml.contains("diagram_0.svg"));
