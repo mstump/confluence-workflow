@@ -140,9 +140,13 @@ pub async fn render_mermaid(
         });
     }
 
-    let svg_bytes = std::fs::read(&output_path).map_err(|e| ConversionError::DiagramError {
-        diagram_type: "mermaid".to_string(),
-        message: format!("Failed to read SVG output: {e}"),
+    let svg_bytes = std::fs::read(&output_path).map_err(|e| {
+        // Clean up before returning so the file is not leaked on this error path.
+        let _ = std::fs::remove_file(&output_path);
+        ConversionError::DiagramError {
+            diagram_type: "mermaid".to_string(),
+            message: format!("Failed to read SVG output: {e}"),
+        }
     })?;
 
     // Clean up output file (input auto-cleaned by tempfile)
