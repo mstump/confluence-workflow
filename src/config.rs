@@ -1,6 +1,47 @@
 use crate::error::ConfigError;
 use std::path::Path;
 
+/// Configuration for diagram rendering subprocesses.
+#[derive(Debug, Clone)]
+pub struct DiagramConfig {
+    /// Path to PlantUML executable. Can be:
+    /// - "plantuml" (Homebrew CLI wrapper, default)
+    /// - "/path/to/plantuml.jar" (JAR mode -- will invoke as java -jar <path>)
+    pub plantuml_path: String,
+
+    /// Path to mermaid-cli executable (default: "mmdc")
+    pub mermaid_path: String,
+
+    /// Optional puppeteer config file for mermaid-cli
+    pub mermaid_puppeteer_config: Option<String>,
+
+    /// Timeout in seconds for each diagram render subprocess (default: 30)
+    pub timeout_secs: u64,
+}
+
+impl DiagramConfig {
+    /// Load from environment variables with sensible defaults.
+    pub fn from_env() -> Self {
+        Self {
+            plantuml_path: std::env::var("PLANTUML_PATH")
+                .unwrap_or_else(|_| "plantuml".to_string()),
+            mermaid_path: std::env::var("MERMAID_PATH")
+                .unwrap_or_else(|_| "mmdc".to_string()),
+            mermaid_puppeteer_config: std::env::var("MERMAID_PUPPETEER_CONFIG").ok(),
+            timeout_secs: std::env::var("DIAGRAM_TIMEOUT")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(30),
+        }
+    }
+}
+
+impl Default for DiagramConfig {
+    fn default() -> Self {
+        Self::from_env()
+    }
+}
+
 /// CLI override values — mirrors the optional CLI flags from `Cli`.
 #[derive(Debug, Default)]
 pub struct CliOverrides {
