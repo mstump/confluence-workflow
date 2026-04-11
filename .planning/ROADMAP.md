@@ -13,7 +13,7 @@ Rewrite the Python Confluence Agent as a standalone Rust binary. The project pro
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Project Scaffolding and Confluence API Client** - Cargo workspace, config/credential loading, trait-based Confluence REST client, working `upload` command
-- [ ] **Phase 2: Markdown-to-Confluence Storage Format Converter** - pulldown-cmark visitor emitting Confluence storage XML, diagram rendering, frontmatter stripping
+- [x] **Phase 2: Markdown-to-Confluence Storage Format Converter** - pulldown-cmark visitor emitting Confluence storage XML, diagram rendering, frontmatter stripping
 - [ ] **Phase 3: LLM Client and Comment-Preserving Merge** - Hand-rolled Anthropic client, per-comment parallel evaluation with bounded concurrency, comment re-injection into new content
 - [ ] **Phase 4: CLI Command Wiring and Integration** - Wire update/upload/convert commands through the full pipeline, structured logging, JSON output mode
 - [ ] **Phase 5: Distribution and Claude Code Skills** - cargo install, Claude Code skill definitions, CI/CD cross-platform builds
