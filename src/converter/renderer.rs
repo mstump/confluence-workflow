@@ -21,6 +21,7 @@ pub struct ConfluenceRenderer {
     had_table_head: bool,
     first_h1_skipped: bool,
     skip_heading_content: bool,
+    in_image: bool,
     list_stack: Vec<bool>, // true = ordered
     in_metadata_block: bool,
 }
@@ -37,6 +38,7 @@ impl ConfluenceRenderer {
             had_table_head: false,
             first_h1_skipped: false,
             skip_heading_content: false,
+            in_image: false,
             list_stack: Vec::new(),
             in_metadata_block: false,
         }
@@ -267,16 +269,16 @@ impl ConfluenceRenderer {
                     };
                     write!(
                         renderer.output,
-                        r#"<ac:image ac:alt="{alt}" ac:width="100%"><ri:attachment ri:filename="{filename}" /></ac:image>"#,
+                        r#"<ac:image ac:alt="{alt}"><ri:attachment ri:filename="{filename}" /></ac:image>"#,
                         alt = escape_attr(&alt),
                         filename = escape_attr(filename),
                     )
                     .unwrap();
                     // Skip text events inside image (they are alt text which we already handled)
-                    renderer.skip_heading_content = true;
+                    renderer.in_image = true;
                 }
                 Event::End(TagEnd::Image) => {
-                    renderer.skip_heading_content = false;
+                    renderer.in_image = false;
                 }
 
                 // --- Text content ---
@@ -285,7 +287,7 @@ impl ConfluenceRenderer {
                         // Skip frontmatter content
                     } else if renderer.in_code_block {
                         renderer.code_content.push_str(&text);
-                    } else if renderer.skip_heading_content {
+                    } else if renderer.skip_heading_content || renderer.in_image {
                         // Skip (first h1 or image alt text)
                     } else {
                         renderer.push_escaped(&text);
@@ -294,7 +296,7 @@ impl ConfluenceRenderer {
 
                 // --- Inline code ---
                 Event::Code(text) => {
-                    if !renderer.skip_heading_content {
+                    if !renderer.skip_heading_content && !renderer.in_image {
                         renderer.output.push_str("<code>");
                         renderer.push_escaped(&text);
                         renderer.output.push_str("</code>");
@@ -303,12 +305,12 @@ impl ConfluenceRenderer {
 
                 // --- Breaks ---
                 Event::SoftBreak => {
-                    if !renderer.skip_heading_content {
+                    if !renderer.skip_heading_content && !renderer.in_image {
                         renderer.output.push('\n');
                     }
                 }
                 Event::HardBreak => {
-                    if !renderer.skip_heading_content {
+                    if !renderer.skip_heading_content && !renderer.in_image {
                         renderer.output.push_str("<br />");
                     }
                 }
