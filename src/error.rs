@@ -13,7 +13,48 @@ pub enum AppError {
     Conversion(#[from] ConversionError),
 
     #[error(transparent)]
+    Merge(#[from] MergeError),
+
+    #[error(transparent)]
+    Llm(#[from] LlmError),
+
+    #[error(transparent)]
     Io(#[from] std::io::Error),
+}
+
+/// LLM provider errors (Anthropic API).
+#[derive(Debug, Error)]
+pub enum LlmError {
+    #[error(transparent)]
+    Http(#[from] reqwest::Error),
+
+    #[error("Failed to deserialize Anthropic API response: {0}")]
+    Deserialize(reqwest::Error),
+
+    #[error("Anthropic API key not configured. Set ANTHROPIC_API_KEY or add to ~/.claude/settings.json")]
+    MissingApiKey,
+
+    #[error("Anthropic API error (HTTP {status}): {body}")]
+    ApiError { status: u16, body: String },
+
+    #[error("Rate limit exhausted after {max_retries} retries")]
+    RateLimitExhausted { max_retries: u32 },
+
+    #[error("Malformed tool_use response: {0}")]
+    MalformedResponse(String),
+}
+
+/// Merge engine errors.
+#[derive(Debug, Error)]
+pub enum MergeError {
+    #[error(transparent)]
+    Llm(#[from] LlmError),
+
+    #[error("Comment extraction failed: {0}")]
+    ExtractionError(String),
+
+    #[error("Comment injection failed: {0}")]
+    InjectionError(String),
 }
 
 /// Markdown-to-Confluence conversion errors.
