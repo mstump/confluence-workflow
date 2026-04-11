@@ -80,6 +80,58 @@ fn test_conversion_error_into_app_error() {
     assert!(format!("{}", app_err).contains("test"));
 }
 
+// ---------- MarkdownConverter trait tests ----------
+
+#[tokio::test]
+async fn test_converter_trait_empty_input() {
+    let converter = MarkdownConverter::new();
+    let result = converter.convert("").await.unwrap();
+    assert!(
+        result.storage_xml.is_empty() || result.storage_xml.trim().is_empty(),
+        "Empty input should produce empty or whitespace-only output, got: {:?}",
+        result.storage_xml
+    );
+    assert!(result.attachments.is_empty());
+}
+
+#[tokio::test]
+async fn test_converter_trait_whitespace_only() {
+    let converter = MarkdownConverter::new();
+    let result = converter.convert("   \n\n  ").await.unwrap();
+    // Should not crash; output may be empty or whitespace
+    assert!(result.attachments.is_empty());
+}
+
+#[tokio::test]
+async fn test_converter_trait_frontmatter_stripped() {
+    let converter = MarkdownConverter::new();
+    let md = include_str!("../../tests/fixtures/frontmatter_document.md");
+    let result = converter.convert(md).await.unwrap();
+    assert!(
+        !result.storage_xml.contains("title: Document With Frontmatter"),
+        "Frontmatter YAML should not appear in output"
+    );
+    assert!(
+        result.storage_xml.contains("Content After Frontmatter"),
+        "Body content should appear in output"
+    );
+}
+
+#[tokio::test]
+async fn test_converter_trait_with_diagrams_placeholder() {
+    let converter = MarkdownConverter::new();
+    let md = "# Title\n\n```plantuml\n@startuml\nAlice -> Bob\n@enduml\n```\n";
+    let result = converter.convert(md).await.unwrap();
+    assert!(
+        result.storage_xml.contains("<!-- DIAGRAM_PLACEHOLDER_0 -->"),
+        "Diagram placeholder should be preserved in output"
+    );
+    assert!(
+        result.attachments.is_empty(),
+        "Attachments should be empty (diagram rendering deferred to Plan 03)"
+    );
+}
+
 // ---------- Renderer tests ----------
 
 use renderer::ConfluenceRenderer;
