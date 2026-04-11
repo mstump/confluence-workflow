@@ -451,27 +451,31 @@ This behavior should be replicated in the Rust converter for parity.
 | A4 | The Python converter's expand-macro wrapping of code blocks is desired behavior | Code Examples | Medium -- user may prefer non-collapsed code blocks; ask during implementation |
 | A5 | pulldown-cmark `MetadataBlock` event correctly identifies YAML frontmatter without consuming document content | Architecture Patterns | Low -- documented feature, but spike should verify edge cases |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Blockquote rendering format**
    - What we know: Standard XHTML `<blockquote>` exists, but Confluence also has a quote macro `ac:structured-macro name="quote"`
    - What's unclear: Which format Confluence Cloud prefers / renders better
    - Recommendation: Spike (02-01) should test both; `<blockquote>` is simpler
+   - RESOLVED: Plan 02-01 Task 2 implements `<blockquote>` (standard XHTML). Simpler approach chosen; spike validates rendering. See renderer.rs event mapping for `Start(BlockQuote)`.
 
 2. **Code block collapse behavior**
    - What we know: Python converter wraps all code blocks in expand macros (collapsed by default)
    - What's unclear: Whether users want this behavior in the Rust version
    - Recommendation: Make it configurable (default: match Python behavior)
+   - RESOLVED: Plan 02-01 Task 2 wraps all code blocks in `ac:structured-macro name="expand"` to match Python converter behavior. See `emit_code_block()` in renderer.rs.
 
 3. **PlantUML HTTP server mode**
    - What we know: CONV-03 specifies "JAR path or HTTP server URL" as configurable
    - What's unclear: HTTP server API endpoint format for PlantUML server
    - Recommendation: Implement JAR/CLI mode first; HTTP mode can be added in 02-03 or deferred
+   - RESOLVED: Plan 02-03 Task 1 implements CLI mode and JAR mode (detecting `.jar` suffix in `plantuml_path`). HTTP server mode deferred beyond Phase 2 scope — CLI/JAR covers CONV-03 requirements.
 
 4. **Image width default**
    - What we know: Python converter sets `ac:width="100%"` on all images
    - What's unclear: Whether this is always desirable
    - Recommendation: Default to 100% for parity; make configurable later
+   - RESOLVED: Plan 02-01 Task 2 and Plan 02-03 both use `ac:width="100%"` for parity with Python converter. See `emit_image()` in renderer.rs and placeholder replacement in mod.rs.
 
 ## Environment Availability
 

@@ -38,23 +38,22 @@ created: 2026-04-10
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 02-01-01 | 01 | 0 | CONV-01 | — | N/A | unit | `cargo test converter::spike` | ❌ W0 | ⬜ pending |
-| 02-02-01 | 02 | 1 | CONV-01 | — | N/A | unit | `cargo test converter::tests` | ❌ W0 | ⬜ pending |
-| 02-02-02 | 02 | 1 | CONV-02 | — | N/A | unit | `cargo test converter::tests::frontmatter` | ❌ W0 | ⬜ pending |
-| 02-02-03 | 02 | 2 | CONV-03 | — | N/A | unit | `cargo test converter::tests::images` | ❌ W0 | ⬜ pending |
-| 02-02-04 | 02 | 2 | CONV-04 | — | N/A | unit | `cargo test converter::tests::trait_mock` | ❌ W0 | ⬜ pending |
-| 02-03-01 | 03 | 1 | CONV-05 | — | N/A | unit | `cargo test diagram::tests` | ❌ W0 | ⬜ pending |
-| 02-03-02 | 03 | 2 | CONV-05 | — | N/A | integration | `cargo test diagram::tests::mermaid` | ❌ W0 | ⬜ pending |
+| 02-01-T1 | 01 | 1 | CONV-01, CONV-02 | T-02-01 | XML-escape text nodes | unit | `cargo test converter::tests::test_mock_converter -q` | No W0 | pending |
+| 02-01-T2 | 01 | 1 | CONV-01, CONV-02 | T-02-01, T-02-02, T-02-03 | XML-escape, CDATA split, attr escape | unit + snapshot | `cargo test converter -q` | No W0 | pending |
+| 02-02-T1 | 02 | 2 | CONV-01, CONV-02, CONV-05 | T-02-04, T-02-05 | Path traversal prevention, href escape | unit | `cargo test converter -q` | No W0 | pending |
+| 02-02-T2 | 02 | 2 | CONV-01, CONV-02, CONV-05 | — | N/A | integration + snapshot | `cargo test converter -q` | No W0 | pending |
+| 02-03-T1 | 03 | 3 | CONV-03, CONV-04 | T-02-06, T-02-07, T-02-08 | No shell invoke, subprocess timeout, secure tempfile | unit + integration | `cargo test converter::diagrams -q` | No W0 | pending |
+| 02-03-T2 | 03 | 3 | CONV-03, CONV-04 | T-02-09 | Large output bounded by diagram complexity | integration | `cargo test converter -q` | No W0 | pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+*Status: pending / green / red / flaky*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `src/converter/tests.rs` — stubs for CONV-01 through CONV-04 (heading, code block, table, link, image conversion tests)
-- [ ] `src/diagram/tests.rs` — stubs for CONV-05 (PlantUML and Mermaid rendering tests)
-- [ ] `tests/fixtures/` — sample markdown documents for spike comparison tests
+- [ ] `src/converter/tests.rs` -- stubs for CONV-01 through CONV-05 (heading, code block, table, link, image, trait mock tests)
+- [ ] `src/converter/diagrams.rs` -- stubs for CONV-03, CONV-04 (PlantUML and Mermaid rendering tests)
+- [ ] `tests/fixtures/` -- sample markdown documents for spike comparison tests
 
 *Existing infrastructure (cargo test) covers all phase requirements.*
 
@@ -65,7 +64,7 @@ created: 2026-04-10
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
 | Output renders correctly in Confluence editor | CONV-01 | Requires live Confluence instance | Paste generated XML into Confluence page editor, verify visual rendering |
-| PlantUML SVG renders correctly | CONV-05 | Requires live Confluence + PlantUML attachment | Upload SVG attachment, verify image displays |
+| PlantUML SVG renders correctly | CONV-03 | Requires live Confluence + PlantUML attachment | Upload SVG attachment, verify image displays |
 
 ---
 
