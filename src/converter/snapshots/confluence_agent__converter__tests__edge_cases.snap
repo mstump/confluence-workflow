@@ -1,0 +1,5 @@
+---
+source: src/converter/tests.rs
+expression: output
+---
+<p>Single paragraph only.</p><p>Text with special XML chars: &amp; &lt; &gt; &quot; &apos;</p><p>A paragraph with a <a href="https://example.com?foo=1&amp;bar=2">link</a> containing ampersand.</p><p>Empty code block:</p><ac:structured-macro ac:name="expand"><ac:parameter ac:name="title">Source</ac:parameter><ac:rich-text-body><ac:structured-macro ac:name="code"><ac:plain-text-body><![CDATA[]]></ac:plain-text-body></ac:structured-macro></ac:rich-text-body></ac:structured-macro><h2>Heading with <code>code</code> in it</h2>

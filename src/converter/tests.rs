@@ -343,3 +343,97 @@ fn test_table_structure() {
     assert!(output.contains("</tbody>"));
     assert!(output.contains("</table>"));
 }
+
+// ---------- Integration snapshot tests ----------
+
+#[test]
+fn test_full_document_snapshot() {
+    let md = include_str!("../../tests/fixtures/full_document.md");
+    let (output, diagrams) = ConfluenceRenderer::render(md);
+    assert!(diagrams.is_empty(), "full_document.md has no diagram blocks");
+
+    // Verify key structural elements
+    assert!(!output.contains("<h1>"), "First h1 should be skipped");
+    assert!(output.contains("<h2>Introduction</h2>"));
+    assert!(output.contains("<h2>Code Examples</h2>"));
+    assert!(output.contains("<h2>Data Table</h2>"));
+    assert!(output.contains("<h2>Links and Images</h2>"));
+    assert!(output.contains("<h2>Lists</h2>"));
+    assert!(output.contains("<h2>Blockquote</h2>"));
+    assert!(output.contains(r#"ac:name="expand""#));
+    assert!(output.contains("<table>"));
+    assert!(output.contains(r#"<a href="https://confluence.atlassian.com">"#));
+    assert!(output.contains(r#"ri:filename="architecture.png""#));
+    assert!(output.contains("<ul>"));
+    assert!(output.contains("<ol>"));
+    assert!(output.contains("<blockquote>"));
+    assert!(output.contains("<hr />"));
+
+    // No frontmatter text in output
+    assert!(!output.contains("title: Full Test Document"));
+    assert!(!output.contains("author: Test Suite"));
+
+    insta::assert_snapshot!("full_document", output);
+}
+
+#[test]
+fn test_frontmatter_stripped_end_to_end() {
+    let md = include_str!("../../tests/fixtures/frontmatter_document.md");
+    let (output, _) = ConfluenceRenderer::render(md);
+
+    // Frontmatter content must NOT appear
+    assert!(
+        !output.contains("title: Document With Frontmatter"),
+        "YAML title should not appear"
+    );
+    assert!(!output.contains("tags:"), "YAML tags key should not appear");
+    assert!(
+        !output.contains("date: 2026"),
+        "YAML date should not appear"
+    );
+
+    // Body content MUST appear
+    assert!(
+        output.contains("Content After Frontmatter"),
+        "Heading text should appear"
+    );
+    assert!(
+        output.contains("This paragraph should appear in output"),
+        "Paragraph text should appear"
+    );
+}
+
+#[test]
+fn test_edge_cases_snapshot() {
+    let md = include_str!("../../tests/fixtures/edge_cases.md");
+    let (output, diagrams) = ConfluenceRenderer::render(md);
+    assert!(diagrams.is_empty());
+
+    // Verify special characters are escaped
+    assert!(output.contains("&amp;"), "Ampersands should be escaped");
+
+    // Verify link with ampersand in URL is handled
+    assert!(
+        output.contains("https://example.com?foo=1&amp;bar=2"),
+        "Ampersand in URL should be escaped in href attribute"
+    );
+
+    // Verify heading with inline code
+    assert!(
+        output.contains("<code>code</code>"),
+        "Inline code in heading should render"
+    );
+
+    insta::assert_snapshot!("edge_cases", output);
+}
+
+#[tokio::test]
+async fn test_mock_converter_returns_fixed_result() {
+    // Verify MockConverter is usable for downstream testing
+    let mock = MockConverter;
+    let result = mock.convert("test input").await.unwrap();
+    assert_eq!(result.storage_xml, "<p>test input</p>");
+    assert_eq!(result.attachments.len(), 1);
+    assert_eq!(result.attachments[0].filename, "test.svg");
+    assert_eq!(result.attachments[0].content_type, "image/svg+xml");
+}
