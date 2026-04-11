@@ -33,9 +33,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- Cargo workspace setup, module layout, error types, clap skeleton with subcommand stubs
-- [ ] 01-02-PLAN.md -- Config and credential loading (waterfall: CLI flag, env var, .env, ~/.claude/ stub) with Confluence connection settings
-- [ ] 01-03-PLAN.md -- Confluence REST API client (get page, update page, upload attachment, extract page ID from URL) with trait boundary and retry-on-409
+- [x] 01-01-PLAN.md -- Cargo workspace setup, module layout, error types, clap skeleton with subcommand stubs
+- [x] 01-02-PLAN.md -- Config and credential loading (waterfall: CLI flag, env var, .env, ~/.claude/ stub) with Confluence connection settings
+- [x] 01-03-PLAN.md -- Confluence REST API client (get page, update page, upload attachment, extract page ID from URL) with trait boundary and retry-on-409
 
 **Flags:**
 - VERIFY BEFORE CODING: Inspect the actual `~/.claude/` directory on this machine to determine the credential file format (expected: `credentials.json` with an `oauth.accessToken` or `apiKey` field). The config module design depends on this.
@@ -51,12 +51,12 @@ Plans:
   3. Mermaid fenced blocks are rendered to SVG via mermaid-cli
   4. Obsidian YAML frontmatter is stripped before conversion without affecting document content
   5. A mock `Converter` trait implementation can be substituted in tests
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 02-01: Converter spike -- attempt pulldown-cmark visitor for 5 complex test documents, compare output against Python converter; decide approach (native Rust vs fallback)
-- [ ] 02-02: Markdown-to-storage-XML converter (pulldown-cmark visitor emitting ac:structured-macro, ac:image, ri:attachment elements) with frontmatter stripping
-- [ ] 02-03: Diagram rendering -- PlantUML (jar or HTTP server, configurable) and Mermaid (mermaid-cli) via tokio::process::Command
+- [ ] 02-01-PLAN.md -- Converter spike: pulldown-cmark event visitor for 5 element types, Converter trait + ConvertResult types, ConversionError, test fixtures
+- [ ] 02-02-PLAN.md -- MarkdownConverter implementing Converter trait, edge case hardening, full-document snapshot tests, frontmatter stripping end-to-end
+- [ ] 02-03-PLAN.md -- Diagram rendering: PlantUML (CLI + JAR modes) and Mermaid (mmdc) via tokio::process::Command, placeholder replacement, DiagramConfig
 
 **Flags:**
 - SPIKE REQUIRED: No Rust crate converts Markdown to Confluence storage format. Plan 02-01 is a spike to determine feasibility of a custom pulldown-cmark visitor. If the spike fails (cannot handle code blocks, tables, images within one week), the fallback is to bridge the Python converter as a subprocess and document the debt. The spike outcome determines the scope of 02-02.
@@ -122,8 +122,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Scaffolding and Confluence API Client | 0/3 | Not started | - |
-| 2. Markdown-to-Confluence Converter | 0/3 | Not started | - |
+| 1. Scaffolding and Confluence API Client | 3/3 | Complete | 2026-04-10 |
+| 2. Markdown-to-Confluence Converter | 0/3 | Planning complete | - |
 | 3. LLM Client and Comment-Preserving Merge | 0/3 | Not started | - |
 | 4. CLI Command Wiring and Integration | 0/2 | Not started | - |
 | 5. Distribution and Claude Code Skills | 0/3 | Not started | - |
