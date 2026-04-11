@@ -75,9 +75,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: XML comment extraction and section context -- extract ac:inline-comment-marker elements with surrounding section, match sections between old and new content
-- [ ] 03-02: Hand-rolled Anthropic Messages API client -- reqwest-based, tool_use for structured KEEP/DROP output, retry with exponential backoff on 429/5xx, LlmClient trait
-- [ ] 03-03: Per-comment parallel merge engine -- deterministic short-circuits, bounded parallel LLM fan-out, comment re-injection into new content XML, partial failure handling
+- [x] 03-01: XML comment extraction and section context -- extract ac:inline-comment-marker elements with surrounding section, match sections between old and new content
+- [x] 03-02: Hand-rolled Anthropic Messages API client -- reqwest-based, tool_use for structured KEEP/DROP output, retry with exponential backoff on 429/5xx, LlmClient trait
+- [x] 03-03: Per-comment parallel merge engine -- deterministic short-circuits, bounded parallel LLM fan-out, comment re-injection into new content XML, partial failure handling
 
 **Flags:**
 - RISK (token cost): N comments x ~2,500 tokens each = potentially 125K tokens for a 50-comment page. The deterministic short-circuit in MERGE-02 is critical to keep costs reasonable -- most real-world comments will be in unchanged sections. The semaphore bound (MERGE-04) also prevents rate-limit thundering herd. Consider adding a cost warning threshold for pages with >20 ambiguous comments.
