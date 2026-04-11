@@ -54,9 +54,9 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 02-01: Converter spike -- attempt pulldown-cmark visitor for 5 complex test documents, compare output against Python converter; decide approach (native Rust vs fallback)
-- [ ] 02-02: Markdown-to-storage-XML converter (pulldown-cmark visitor emitting ac:structured-macro, ac:image, ri:attachment elements) with frontmatter stripping
-- [ ] 02-03: Diagram rendering -- PlantUML (jar or HTTP server, configurable) and Mermaid (mermaid-cli) via tokio::process::Command
+- [x] 02-01: Converter spike -- attempt pulldown-cmark visitor for 5 complex test documents, compare output against Python converter; decide approach (native Rust vs fallback)
+- [x] 02-02: Markdown-to-storage-XML converter (pulldown-cmark visitor emitting ac:structured-macro, ac:image, ri:attachment elements) with frontmatter stripping
+- [x] 02-03: Diagram rendering -- PlantUML (jar or HTTP server, configurable) and Mermaid (mermaid-cli) via tokio::process::Command
 
 **Flags:**
 - SPIKE REQUIRED: No Rust crate converts Markdown to Confluence storage format. Plan 02-01 is a spike to determine feasibility of a custom pulldown-cmark visitor. If the spike fails (cannot handle code blocks, tables, images within one week), the fallback is to bridge the Python converter as a subprocess and document the debt. The spike outcome determines the scope of 02-02.
