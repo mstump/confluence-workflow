@@ -1,6 +1,7 @@
 pub mod cli;
 pub mod config;
 pub mod confluence;
+pub mod converter;
 pub mod error;
 
 use cli::{Cli, Commands};

@@ -10,6 +10,31 @@ pub enum AppError {
     Confluence(#[from] ConfluenceError),
 
     #[error(transparent)]
+    Conversion(#[from] ConversionError),
+
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+}
+
+/// Markdown-to-Confluence conversion errors.
+#[derive(Debug, Error)]
+pub enum ConversionError {
+    #[error("Markdown rendering failed: {0}")]
+    RenderError(String),
+
+    #[error("Diagram rendering failed for {diagram_type}: {message}")]
+    DiagramError {
+        diagram_type: String,
+        message: String,
+    },
+
+    #[error("Diagram rendering timed out after {timeout_secs}s for {diagram_type}")]
+    DiagramTimeout {
+        diagram_type: String,
+        timeout_secs: u64,
+    },
+
+    #[error(transparent)]
     Io(#[from] std::io::Error),
 }
 
