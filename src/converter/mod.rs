@@ -4,6 +4,8 @@ use async_trait::async_trait;
 
 use crate::error::ConversionError;
 
+pub use renderer::{ConfluenceRenderer, DiagramBlock};
+
 /// A single attachment produced during conversion (e.g., rendered diagram SVG).
 #[derive(Debug, Clone)]
 pub struct Attachment {
@@ -25,6 +27,37 @@ pub struct ConvertResult {
 #[async_trait]
 pub trait Converter: Send + Sync {
     async fn convert(&self, markdown: &str) -> Result<ConvertResult, ConversionError>;
+}
+
+/// Concrete converter that uses [`ConfluenceRenderer`] to transform Markdown
+/// into Confluence storage format XML.
+///
+/// Diagram blocks are collected but not rendered — Plan 03 adds diagram rendering.
+/// Their positions are marked with `<!-- DIAGRAM_PLACEHOLDER_N -->` comments.
+pub struct MarkdownConverter;
+
+impl MarkdownConverter {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for MarkdownConverter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl Converter for MarkdownConverter {
+    async fn convert(&self, markdown: &str) -> Result<ConvertResult, ConversionError> {
+        let (storage_xml, _diagram_blocks) = renderer::ConfluenceRenderer::render(markdown);
+        // Diagram rendering handled in Plan 03; for now return XML with placeholders
+        Ok(ConvertResult {
+            storage_xml,
+            attachments: Vec::new(),
+        })
+    }
 }
 
 #[cfg(test)]
