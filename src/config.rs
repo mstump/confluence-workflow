@@ -58,6 +58,8 @@ pub struct Config {
     pub confluence_username: String,
     pub confluence_api_token: String,
     pub anthropic_api_key: Option<String>,
+    pub anthropic_model: String,
+    pub anthropic_concurrency: usize,
 }
 
 impl Config {
@@ -114,11 +116,25 @@ impl Config {
             home,
         );
 
+        let anthropic_model = Self::resolve_optional(
+            None,
+            "ANTHROPIC_MODEL",
+            home,
+        )
+        .unwrap_or_else(|| "claude-haiku-4-5-20251001".to_string());
+
+        let anthropic_concurrency = std::env::var("ANTHROPIC_CONCURRENCY")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(5);
+
         Ok(Config {
             confluence_url,
             confluence_username,
             confluence_api_token,
             anthropic_api_key,
+            anthropic_model,
+            anthropic_concurrency,
         })
     }
 

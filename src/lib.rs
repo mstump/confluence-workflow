@@ -3,6 +3,7 @@ pub mod config;
 pub mod confluence;
 pub mod converter;
 pub mod error;
+pub mod llm;
 pub mod merge;
 
 use cli::{Cli, Commands};

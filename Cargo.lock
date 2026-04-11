@@ -274,6 +274,7 @@ dependencies = [
  "dotenvy",
  "insta",
  "pulldown-cmark",
+ "rand",
  "regex",
  "reqwest",
  "serde",
