@@ -2,4 +2,4 @@
 source: src/converter/tests.rs
 expression: output
 ---
-<p>Visit <a href="https://example.com">Example</a> for details.</p><p><ac:image ac:alt="" ac:width="100%"><ri:attachment ri:filename="image.png" /></ac:image></p><p><a href="https://example.com/bold">Link with <strong>bold</strong></a></p>
+<p>Visit <a href="https://example.com">Example</a> for details.</p><p><ac:image ac:alt=""><ri:attachment ri:filename="image.png" /></ac:image></p><p><a href="https://example.com/bold">Link with <strong>bold</strong></a></p>
