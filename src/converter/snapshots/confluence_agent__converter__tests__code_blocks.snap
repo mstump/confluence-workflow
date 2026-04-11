@@ -1,0 +1,12 @@
+---
+source: src/converter/tests.rs
+expression: output
+---
+<p>Here is some code:</p><ac:structured-macro ac:name="expand"><ac:parameter ac:name="title">Source</ac:parameter><ac:rich-text-body><ac:structured-macro ac:name="code"><ac:parameter ac:name="language">python</ac:parameter><ac:plain-text-body><![CDATA[def hello():
+    print("Hello, world!")
+]]></ac:plain-text-body></ac:structured-macro></ac:rich-text-body></ac:structured-macro><p>And inline <code>code here</code> too.</p><ac:structured-macro ac:name="expand"><ac:parameter ac:name="title">Source</ac:parameter><ac:rich-text-body><ac:structured-macro ac:name="code"><ac:plain-text-body><![CDATA[plain code block
+no language specified
+]]></ac:plain-text-body></ac:structured-macro></ac:rich-text-body></ac:structured-macro><p>Code with special chars:</p><ac:structured-macro ac:name="expand"><ac:parameter ac:name="title">Source</ac:parameter><ac:rich-text-body><ac:structured-macro ac:name="code"><ac:parameter ac:name="language">xml</ac:parameter><ac:plain-text-body><![CDATA[<root>
+  <child attr="value">content with ]]]]><![CDATA[> edge case</child>
+</root>
+]]></ac:plain-text-body></ac:structured-macro></ac:rich-text-body></ac:structured-macro>

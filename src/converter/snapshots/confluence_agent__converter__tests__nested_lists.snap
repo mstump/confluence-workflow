@@ -1,0 +1,5 @@
+---
+source: src/converter/tests.rs
+expression: output
+---
+<ul><li>Item 1<ul><li>Nested 1a</li><li>Nested 1b</li></ul></li><li>Item 2</li><li>Item 3</li></ul><ol><li>First</li><li>Second<ul><li>Sub-bullet</li></ul></li><li>Third</li></ol>

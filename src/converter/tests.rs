@@ -1,7 +1,7 @@
 use super::*;
 use crate::error::ConversionError;
 
-/// Mock converter that returns a fixed result — proves the trait is implementable.
+/// Mock converter that returns a fixed result -- proves the trait is implementable.
 struct MockConverter;
 
 #[async_trait::async_trait]
@@ -78,4 +78,216 @@ fn test_conversion_error_into_app_error() {
     let conversion_err = ConversionError::RenderError("test".to_string());
     let app_err: AppError = conversion_err.into();
     assert!(format!("{}", app_err).contains("test"));
+}
+
+// ---------- Renderer tests ----------
+
+use renderer::ConfluenceRenderer;
+
+#[test]
+fn test_headings_fixture() {
+    let md = include_str!("../../tests/fixtures/spike_headings.md");
+    let (output, diagrams) = ConfluenceRenderer::render(md);
+    assert!(diagrams.is_empty());
+    insta::assert_snapshot!("headings", output);
+}
+
+#[test]
+fn test_code_blocks_fixture() {
+    let md = include_str!("../../tests/fixtures/spike_code_blocks.md");
+    let (output, diagrams) = ConfluenceRenderer::render(md);
+    assert!(diagrams.is_empty());
+    insta::assert_snapshot!("code_blocks", output);
+}
+
+#[test]
+fn test_tables_fixture() {
+    let md = include_str!("../../tests/fixtures/spike_tables.md");
+    let (output, diagrams) = ConfluenceRenderer::render(md);
+    assert!(diagrams.is_empty());
+    insta::assert_snapshot!("tables", output);
+}
+
+#[test]
+fn test_links_images_fixture() {
+    let md = include_str!("../../tests/fixtures/spike_links_images.md");
+    let (output, diagrams) = ConfluenceRenderer::render(md);
+    assert!(diagrams.is_empty());
+    insta::assert_snapshot!("links_images", output);
+}
+
+#[test]
+fn test_nested_lists_fixture() {
+    let md = include_str!("../../tests/fixtures/spike_nested_lists.md");
+    let (output, diagrams) = ConfluenceRenderer::render(md);
+    assert!(diagrams.is_empty());
+    insta::assert_snapshot!("nested_lists", output);
+}
+
+#[test]
+fn test_cdata_split() {
+    let md = "```xml\nContent with ]]> inside\n```\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(output.contains("]]]]><![CDATA[>"), "CDATA should be split at ]]>");
+    assert!(!output.contains("]]>]]>"), "Raw ]]> should not appear in CDATA");
+}
+
+#[test]
+fn test_xml_escape() {
+    let md = "Text with & < > \" and ' characters.\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(output.contains("&amp;"), "& should be escaped");
+    assert!(output.contains("&lt;"), "< should be escaped");
+    assert!(output.contains("&gt;"), "> should be escaped");
+    assert!(output.contains("&quot;"), "\" should be escaped");
+    assert!(output.contains("&apos;"), "' should be escaped");
+}
+
+#[test]
+fn test_frontmatter_stripped() {
+    let md = "---\ntitle: test\nauthor: someone\n---\n# Hello\n\nContent here.\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(!output.contains("title: test"), "Frontmatter should be stripped");
+    assert!(!output.contains("author: someone"), "Frontmatter should be stripped");
+    assert!(output.contains("Content here."), "Body content should remain");
+}
+
+#[test]
+fn test_first_h1_skipped() {
+    let md = "# Title\n## Sub\n\nParagraph.\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(!output.contains("<h1>"), "First h1 should be skipped");
+    assert!(output.contains("<h2>Sub</h2>"), "h2 should be present");
+    assert!(output.contains("Paragraph."), "Paragraph should be present");
+}
+
+#[test]
+fn test_bold_italic() {
+    let md = "**bold** and *italic* text.\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(output.contains("<strong>bold</strong>"));
+    assert!(output.contains("<em>italic</em>"));
+}
+
+#[test]
+fn test_strikethrough() {
+    let md = "~~struck~~\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(output.contains(r#"<span style="text-decoration: line-through;">struck</span>"#));
+}
+
+#[test]
+fn test_inline_code() {
+    let md = "Use `code_here` inline.\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(output.contains("<code>code_here</code>"));
+}
+
+#[test]
+fn test_blockquote() {
+    let md = "> Quoted text\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(output.contains("<blockquote>"));
+    assert!(output.contains("</blockquote>"));
+    assert!(output.contains("Quoted text"));
+}
+
+#[test]
+fn test_horizontal_rule() {
+    let md = "Above\n\n---\n\nBelow\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(output.contains("<hr />"));
+}
+
+#[test]
+fn test_paragraphs() {
+    let md = "First paragraph.\n\nSecond paragraph.\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(output.contains("<p>First paragraph.</p>"));
+    assert!(output.contains("<p>Second paragraph.</p>"));
+}
+
+#[test]
+fn test_external_link() {
+    let md = "[Example](https://example.com)\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(output.contains(r#"<a href="https://example.com">Example</a>"#));
+}
+
+#[test]
+fn test_image_produces_ac_image() {
+    let md = "![Alt text](image.png)\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(output.contains("ac:image"));
+    assert!(output.contains("ri:attachment"));
+    assert!(output.contains(r#"ri:filename="image.png""#));
+}
+
+#[test]
+fn test_ordered_list() {
+    let md = "1. First\n2. Second\n3. Third\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(output.contains("<ol>"));
+    assert!(output.contains("</ol>"));
+    assert!(output.contains("<li>First</li>"));
+}
+
+#[test]
+fn test_unordered_list() {
+    let md = "- A\n- B\n- C\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(output.contains("<ul>"));
+    assert!(output.contains("</ul>"));
+    assert!(output.contains("<li>A</li>"));
+}
+
+#[test]
+fn test_code_block_with_language() {
+    let md = "```python\nprint('hi')\n```\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(output.contains(r#"ac:name="expand""#));
+    assert!(output.contains(r#"ac:name="code""#));
+    assert!(output.contains(r#"ac:name="language">python</ac:parameter>"#));
+    assert!(output.contains("CDATA["));
+}
+
+#[test]
+fn test_code_block_without_language() {
+    let md = "```\nplain code\n```\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(output.contains(r#"ac:name="code""#));
+    assert!(!output.contains(r#"ac:name="language""#));
+}
+
+#[test]
+fn test_diagram_block_collected() {
+    let md = "```plantuml\n@startuml\nAlice -> Bob\n@enduml\n```\n";
+    let (output, diagrams) = ConfluenceRenderer::render(md);
+    assert_eq!(diagrams.len(), 1);
+    assert_eq!(diagrams[0].kind, "plantuml");
+    assert!(diagrams[0].content.contains("Alice -> Bob"));
+    assert!(output.contains("DIAGRAM_PLACEHOLDER_0"));
+}
+
+#[test]
+fn test_mermaid_diagram_block() {
+    let md = "```mermaid\ngraph LR\n  A --> B\n```\n";
+    let (output, diagrams) = ConfluenceRenderer::render(md);
+    assert_eq!(diagrams.len(), 1);
+    assert_eq!(diagrams[0].kind, "mermaid");
+    assert!(output.contains("DIAGRAM_PLACEHOLDER_0"));
+}
+
+#[test]
+fn test_table_structure() {
+    let md = "| H1 | H2 |\n|---|---|\n| C1 | C2 |\n";
+    let (output, _) = ConfluenceRenderer::render(md);
+    assert!(output.contains("<table>"));
+    assert!(output.contains("<thead>"));
+    assert!(output.contains("<th>"));
+    assert!(output.contains("</thead>"));
+    assert!(output.contains("<tbody>"));
+    assert!(output.contains("<td>"));
+    assert!(output.contains("</tbody>"));
+    assert!(output.contains("</table>"));
 }
