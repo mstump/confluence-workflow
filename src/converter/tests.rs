@@ -84,7 +84,7 @@ fn test_conversion_error_into_app_error() {
 
 #[tokio::test]
 async fn test_converter_trait_empty_input() {
-    let converter = MarkdownConverter::new();
+    let converter = MarkdownConverter::default();
     let result = converter.convert("").await.unwrap();
     assert!(
         result.storage_xml.is_empty() || result.storage_xml.trim().is_empty(),
@@ -96,7 +96,7 @@ async fn test_converter_trait_empty_input() {
 
 #[tokio::test]
 async fn test_converter_trait_whitespace_only() {
-    let converter = MarkdownConverter::new();
+    let converter = MarkdownConverter::default();
     let result = converter.convert("   \n\n  ").await.unwrap();
     // Should not crash; output may be empty or whitespace
     assert!(result.attachments.is_empty());
@@ -104,7 +104,7 @@ async fn test_converter_trait_whitespace_only() {
 
 #[tokio::test]
 async fn test_converter_trait_frontmatter_stripped() {
-    let converter = MarkdownConverter::new();
+    let converter = MarkdownConverter::default();
     let md = include_str!("../../tests/fixtures/frontmatter_document.md");
     let result = converter.convert(md).await.unwrap();
     assert!(
@@ -117,19 +117,91 @@ async fn test_converter_trait_frontmatter_stripped() {
     );
 }
 
+// ---------- Diagram integration tests ----------
+
 #[tokio::test]
-async fn test_converter_trait_with_diagrams_placeholder() {
-    let converter = MarkdownConverter::new();
-    let md = "# Title\n\n```plantuml\n@startuml\nAlice -> Bob\n@enduml\n```\n";
-    let result = converter.convert(md).await.unwrap();
-    assert!(
-        result.storage_xml.contains("<!-- DIAGRAM_PLACEHOLDER_0 -->"),
-        "Diagram placeholder should be preserved in output"
-    );
-    assert!(
-        result.attachments.is_empty(),
-        "Attachments should be empty (diagram rendering deferred to Plan 03)"
-    );
+async fn test_no_diagrams_no_attachments() {
+    let config = crate::config::DiagramConfig::default();
+    let converter = MarkdownConverter::new(config);
+    let result = converter.convert("## Hello\n\nA paragraph.").await.unwrap();
+    assert!(result.attachments.is_empty());
+    assert!(!result.storage_xml.contains("DIAGRAM_PLACEHOLDER"));
+}
+
+#[tokio::test]
+async fn test_plantuml_rendering_integration() {
+    // Skip if plantuml not available
+    if std::process::Command::new("plantuml")
+        .arg("-version")
+        .output()
+        .is_err()
+    {
+        eprintln!("Skipping: plantuml not installed");
+        return;
+    }
+    let config = crate::config::DiagramConfig::default();
+    let converter = MarkdownConverter::new(config);
+    let md = std::fs::read_to_string("tests/fixtures/plantuml_diagram.md").unwrap();
+    let result = converter.convert(&md).await.unwrap();
+    assert_eq!(result.attachments.len(), 1);
+    assert_eq!(result.attachments[0].filename, "diagram_0.svg");
+    assert_eq!(result.attachments[0].content_type, "image/svg+xml");
+    assert!(!result.attachments[0].content.is_empty());
+    assert!(result.storage_xml.contains(r#"ri:filename="diagram_0.svg""#));
+    assert!(!result.storage_xml.contains("DIAGRAM_PLACEHOLDER"));
+}
+
+#[tokio::test]
+async fn test_mermaid_rendering_integration() {
+    // Skip if mmdc not available
+    if std::process::Command::new("mmdc")
+        .arg("--version")
+        .output()
+        .is_err()
+    {
+        eprintln!("Skipping: mmdc not installed");
+        return;
+    }
+    let config = crate::config::DiagramConfig::default();
+    let converter = MarkdownConverter::new(config);
+    let md = std::fs::read_to_string("tests/fixtures/mermaid_diagram.md").unwrap();
+    let result = converter.convert(&md).await;
+    match result {
+        Ok(result) => {
+            assert_eq!(result.attachments.len(), 1);
+            assert_eq!(result.attachments[0].filename, "diagram_0.svg");
+            assert_eq!(result.attachments[0].content_type, "image/svg+xml");
+            assert!(!result.attachments[0].content.is_empty());
+            assert!(result.storage_xml.contains(r#"ri:filename="diagram_0.svg""#));
+            assert!(!result.storage_xml.contains("DIAGRAM_PLACEHOLDER"));
+        }
+        Err(ConversionError::DiagramError { message, .. })
+            if message.contains("Chrome") || message.contains("puppeteer") =>
+        {
+            eprintln!("Skipping: mmdc requires Chrome/puppeteer setup");
+        }
+        Err(e) => panic!("Unexpected error: {e}"),
+    }
+}
+
+#[tokio::test]
+async fn test_placeholder_replaced_with_ac_image() {
+    // Skip if plantuml not available
+    if std::process::Command::new("plantuml")
+        .arg("-version")
+        .output()
+        .is_err()
+    {
+        eprintln!("Skipping: plantuml not installed");
+        return;
+    }
+    let config = crate::config::DiagramConfig::default();
+    let converter = MarkdownConverter::new(config);
+    let md = std::fs::read_to_string("tests/fixtures/plantuml_diagram.md").unwrap();
+    let result = converter.convert(&md).await.unwrap();
+    assert!(result.storage_xml.contains("ac:image"));
+    assert!(result.storage_xml.contains("ri:attachment"));
+    assert!(result.storage_xml.contains("diagram_0.svg"));
 }
 
 // ---------- Renderer tests ----------
