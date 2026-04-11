@@ -32,13 +32,19 @@ pub async fn render_plantuml(
         message: format!("Failed to spawn PlantUML process: {e}"),
     })?;
 
-    // Write content to stdin
-    let mut stdin = child.stdin.take().expect("stdin configured");
-    let content_bytes = content.as_bytes().to_vec();
-    tokio::spawn(async move {
-        let _ = stdin.write_all(&content_bytes).await;
-        drop(stdin);
-    });
+    // Write content to stdin and close the pipe before waiting for output.
+    // PlantUML reads stdin in -pipe mode and produces output only after EOF,
+    // so writing inline before wait_with_output is safe and correct.
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin
+            .write_all(content.as_bytes())
+            .await
+            .map_err(|e| ConversionError::DiagramError {
+                diagram_type: "plantuml".to_string(),
+                message: format!("Failed to write to PlantUML stdin: {e}"),
+            })?;
+        // Dropping stdin closes the pipe and signals EOF to the process.
+    }
 
     // Wait with timeout
     let output = tokio::time::timeout(
