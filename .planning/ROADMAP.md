@@ -72,7 +72,7 @@ Plans:
   3. Given a page with inline comments in changed sections, each ambiguous comment triggers exactly one focused LLM call that returns KEEP or DROP
   4. Parallel LLM evaluations are bounded by a configurable concurrency limit (default 5) using a tokio semaphore -- not unbounded fan-out
   5. If an individual comment evaluation fails (timeout, rate limit, malformed response), that comment defaults to KEEP and a warning is logged -- the overall update proceeds
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 - [ ] 03-01: XML comment extraction and section context -- extract ac:inline-comment-marker elements with surrounding section, match sections between old and new content
