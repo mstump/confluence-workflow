@@ -21,7 +21,10 @@ pub fn inject_markers(
     new_content: &str,
     markers: &[CommentMarker],
     old_sections: &[Section],
-    new_sections: &[Section],
+    // new_sections is no longer used directly: sections are recomputed from the
+    // mutating result string each iteration (WR-03 fix). The parameter is kept
+    // for API compatibility with callers that already compute and pass it.
+    _new_sections: &[Section],
 ) -> String {
     if markers.is_empty() {
         return new_content.to_string();
@@ -42,57 +45,84 @@ pub fn inject_markers(
         );
         let wrapper_close = "</ac:inline-comment-marker>";
 
-        // Strategy 1: Exact anchor text match (non-empty anchor text only)
+        // Re-extract sections from the current (already-mutated) result so that
+        // byte offsets and content strings are always fresh. This prevents WR-03:
+        // earlier insertions shift byte positions and invalidate section content
+        // substrings derived from the original new_content string.
+        let current_sections = crate::merge::matcher::extract_sections(&result);
+
+        // Strategy 1: Exact anchor text match (non-empty anchor text only).
+        // Narrow the search to the section that originally contained this marker
+        // to prevent WR-01: choosing the wrong occurrence when the same anchor
+        // text appears in an earlier, unrelated section.
         if !marker.anchor_text.is_empty() && !injected_anchors.contains(&marker.anchor_text) {
-            if let Some(pos) = result.find(&marker.anchor_text) {
-                // Replace the first occurrence of anchor text with wrapped version
-                let end = pos + marker.anchor_text.len();
+            // Find which old section held this marker, then find the matching
+            // new section by heading within the current (mutated) result.
+            let old_section = old_sections
+                .iter()
+                .find(|s| marker.position >= s.start_offset && marker.position < s.end_offset);
+
+            let section_found = if let Some(old_sec) = old_section {
+                find_matching_section(&old_sec.heading, &current_sections)
+            } else {
+                None
+            };
+
+            // Determine the byte range to search within: prefer the specific
+            // matched section; fall back to the whole result if no section match.
+            let (search_start, search_end) = if let Some(sec) = section_found {
+                (sec.start_offset, sec.end_offset)
+            } else {
+                (0, result.len())
+            };
+
+            let search_slice = &result[search_start..search_end];
+            if let Some(rel_pos) = search_slice.find(&marker.anchor_text) {
+                let abs_pos = search_start + rel_pos;
+                let end = abs_pos + marker.anchor_text.len();
                 let wrapped = format!(
                     "{}{}{}",
                     wrapper_open, marker.anchor_text, wrapper_close
                 );
-                result = format!("{}{}{}", &result[..pos], wrapped, &result[end..]);
+                result = format!("{}{}{}", &result[..abs_pos], wrapped, &result[end..]);
                 injected_anchors.insert(marker.anchor_text.clone());
                 continue;
             }
         }
 
-        // Strategy 2: Section-start fallback
-        // Find which old section contained this marker
+        // Strategy 2: Section-start fallback.
+        // Find which old section contained this marker.
         let old_section = old_sections
             .iter()
             .find(|s| marker.position >= s.start_offset && marker.position < s.end_offset);
 
         if let Some(old_sec) = old_section {
-            // Find matching new section by heading
-            if let Some(new_sec) = find_matching_section(&old_sec.heading, new_sections) {
-                // Find the new section's content within the result string
-                // We search for the section content start within the full result
-                if let Some(section_start) = result.find(&new_sec.content) {
-                    let section_slice = &result[section_start..section_start + new_sec.content.len()];
-                    // Find first <p> or <p ...> in that section
-                    if let Some(p_match) = P_OPEN_RE.find(section_slice) {
-                        let insert_pos = section_start + p_match.end();
-                        // For self-closing markers (empty anchor text), insert self-closing element
-                        if marker.anchor_text.is_empty() {
-                            let self_closing = format!(
-                                r#"<ac:inline-comment-marker ac:ref="{}"/>"#,
-                                marker.ac_ref
-                            );
-                            result.insert_str(insert_pos, &self_closing);
-                        } else {
-                            // Wrap a small portion at the start of paragraph content
-                            // Insert the opening tag at the start of paragraph content
-                            // and the closing tag right after, creating an empty-anchor wrapper
-                            let wrapped = format!(
-                                "{}{}{}",
-                                wrapper_open, marker.anchor_text, wrapper_close
-                            );
-                            result.insert_str(insert_pos, &wrapped);
-                        }
-                        injected_anchors.insert(marker.anchor_text.clone());
-                        continue;
+            // Find matching new section by heading in the current (mutated) sections.
+            if let Some(new_sec) = find_matching_section(&old_sec.heading, &current_sections) {
+                let section_slice = &result[new_sec.start_offset..new_sec.end_offset];
+                // Find first <p> or <p ...> in that section.
+                if let Some(p_match) = P_OPEN_RE.find(section_slice) {
+                    let insert_pos = new_sec.start_offset + p_match.end();
+                    // For self-closing markers (empty anchor text), insert self-closing element.
+                    if marker.anchor_text.is_empty() {
+                        let self_closing = format!(
+                            r#"<ac:inline-comment-marker ac:ref="{}"/>"#,
+                            marker.ac_ref
+                        );
+                        result.insert_str(insert_pos, &self_closing);
+                    } else {
+                        // WR-02: anchor text was NOT found in new content (Strategy 1 failed).
+                        // Inserting the stale anchor text would corrupt the document.
+                        // Use a self-closing marker to preserve the comment thread reference
+                        // without injecting text that does not exist in the updated document.
+                        let self_closing = format!(
+                            r#"<ac:inline-comment-marker ac:ref="{}"/>"#,
+                            marker.ac_ref
+                        );
+                        result.insert_str(insert_pos, &self_closing);
                     }
+                    injected_anchors.insert(marker.anchor_text.clone());
+                    continue;
                 }
             }
         }
@@ -185,15 +215,12 @@ mod tests {
         let new_sections = make_sections(new_content);
 
         let result = inject_markers(new_content, &markers, &old_sections, &new_sections);
-        // Should inject at start of first <p> in the matching section
+        // Anchor text "oldword" is not present in new content, so Strategy-1 fails.
+        // Strategy-2 should inject a self-closing marker (preserving the comment thread
+        // reference without corrupting the document with stale anchor text).
         assert!(
-            result.contains(r#"<ac:inline-comment-marker ac:ref="abc">"#),
-            "Marker should be injected via section fallback. Got: {}",
-            result
-        );
-        assert!(
-            result.contains("</ac:inline-comment-marker>"),
-            "Marker should have closing tag. Got: {}",
+            result.contains(r#"<ac:inline-comment-marker ac:ref="abc"/>"#),
+            "Marker should be injected as self-closing via section fallback. Got: {}",
             result
         );
     }
