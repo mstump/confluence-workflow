@@ -91,8 +91,9 @@ impl Config {
 
         // Threat model T-01-04: validate scheme to prevent accidental HTTP use.
         if !confluence_url.starts_with("https://") {
-            return Err(ConfigError::Missing {
-                name: "CONFLUENCE_URL (must start with https://)",
+            return Err(ConfigError::Invalid {
+                name: "CONFLUENCE_URL",
+                reason: "must start with https://",
             });
         }
 
@@ -480,13 +481,14 @@ mod tests {
         let err = Config::load_with_home(&overrides, Some(&no_home()))
             .expect_err("should reject http:// URL");
         match err {
-            ConfigError::Missing { name } => {
+            ConfigError::Invalid { name, reason } => {
+                assert_eq!(name, "CONFLUENCE_URL", "error should reference CONFLUENCE_URL");
                 assert!(
-                    name.contains("CONFLUENCE_URL"),
-                    "error should reference CONFLUENCE_URL, got: {name}"
+                    reason.contains("https://"),
+                    "error reason should mention https://, got: {reason}"
                 );
             }
-            other => panic!("expected ConfigError::Missing for http URL, got: {other:?}"),
+            other => panic!("expected ConfigError::Invalid for http URL, got: {other:?}"),
         }
     }
 }

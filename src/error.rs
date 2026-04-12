@@ -87,6 +87,9 @@ pub enum ConfigError {
     )]
     Missing { name: &'static str },
 
+    #[error("Invalid configuration value for {name}: {reason}")]
+    Invalid { name: &'static str, reason: &'static str },
+
     #[error("Could not determine home directory")]
     NoHomeDir,
 
