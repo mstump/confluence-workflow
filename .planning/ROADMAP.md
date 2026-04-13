@@ -17,6 +17,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 3: LLM Client and Comment-Preserving Merge** - Hand-rolled Anthropic client, per-comment parallel evaluation with bounded concurrency, comment re-injection into new content
 - [ ] **Phase 4: CLI Command Wiring and Integration** - Wire update/upload/convert commands through the full pipeline, structured logging, JSON output mode
 - [ ] **Phase 5: Distribution and Claude Code Skills** - cargo install, Claude Code skill definitions, CI/CD cross-platform builds
+- [ ] **Phase 6: Credential Waterfall Fix** - Add --anthropic-api-key CLI flag, wire through CliOverrides, fix broken credential waterfall for Anthropic key (gap closure)
+- [ ] **Phase 7: Test Scaffold Completion** - Create missing cli_integration.rs and output_format.rs test stubs, fix config test race condition, remove unused anyhow dependency (gap closure)
+- [ ] **Phase 8: DiagramConfig Waterfall and Nyquist Compliance** - Add diagram path CLI flags, integrate DiagramConfig into Config waterfall, achieve Nyquist compliance for Phases 01–03 (gap closure)
 
 ## Phase Details
 
@@ -115,6 +118,52 @@ Plans:
 - [ ] 05-02: Claude Code skills -- confluence-update.md and confluence-upload.md skill definitions that invoke the binary with --output json
 - [ ] 05-03: CI/CD -- GitHub Actions workflow for cross-platform builds (cargo-zigbuild or cross), release artifact upload on tag
 
+### Phase 6: Credential Waterfall Fix
+**Goal**: The `--anthropic-api-key` CLI flag is wired end-to-end so the CLI tier of the credential waterfall (CLI > env > .env > ~/.claude/) is functional for the Anthropic API key, satisfying SCAF-02 and SCAF-03
+**Depends on**: Phase 4 (CLI and CliOverrides already defined)
+**Requirements**: SCAF-02, SCAF-03
+**Gap Closure:** Closes gaps from v1.0 audit
+**Success Criteria** (what must be TRUE):
+  1. `confluence-agent --anthropic-api-key sk-xxx update doc.md <url>` passes the key through to the LLM client without requiring `ANTHROPIC_API_KEY` in the environment
+  2. `CliOverrides.anthropic_api_key` is `Some(key)` when the flag is provided, `None` when omitted — both update and upload arms in lib.rs
+  3. `test_update_command_missing_api_key` asserts on the correct error path (missing API key, not HTTPS guard)
+  4. Credential waterfall precedence for ANTHROPIC_API_KEY is: CLI flag > ANTHROPIC_API_KEY env var > .env file > ~/.claude/ config
+**Plans**: TBD
+
+Plans:
+- [ ] 06-01: Add --anthropic-api-key flag to cli.rs, wire through CliOverrides in lib.rs (update + upload arms), fix test_update_command_missing_api_key
+
+### Phase 7: Test Scaffold Completion
+**Goal**: All test stubs specified in Phase 4 plans exist and pass; Phase 1 config tests pass reliably under parallel `cargo test`; unused dependencies removed
+**Depends on**: Phase 6 (credential fix may affect some test scenarios)
+**Requirements**: CLI-01 (test coverage), CLI-02 (test coverage), CLI-03 (test coverage), CLI-04 (test coverage), CLI-05 (test coverage)
+**Gap Closure:** Closes gaps from v1.0 audit
+**Success Criteria** (what must be TRUE):
+  1. `tests/cli_integration.rs` exists with passing implementations of test_update_command, test_upload_command, test_convert_command, test_json_output_mode, test_stderr_routing
+  2. `tests/output_format.rs` exists with a passing test_default_silent_mode test
+  3. `cargo test` passes with default parallelism (no `--test-threads=1` workaround needed for config tests)
+  4. `anyhow` removed from `Cargo.toml`; `cargo build` still clean
+**Plans**: TBD
+
+Plans:
+- [ ] 07-01: Create tests/cli_integration.rs and tests/output_format.rs with full test implementations
+- [ ] 07-02: Fix src/config.rs parallel test race condition (serial_test crate or env isolation); remove unused anyhow dependency
+
+### Phase 8: DiagramConfig Waterfall and Nyquist Compliance
+**Goal**: DiagramConfig respects the same CLI > env > config waterfall as credentials; Phases 01–03 achieve Nyquist compliance with proper VALIDATION.md frontmatter
+**Depends on**: Phase 6 (waterfall pattern established)
+**Requirements**: SCAF-03 (waterfall consistency for diagram paths)
+**Gap Closure:** Closes gaps from v1.0 audit
+**Success Criteria** (what must be TRUE):
+  1. `--plantuml-path` and `--mermaid-path` CLI flags override env vars `PLANTUML_PATH` / `MERMAID_PATH` when provided
+  2. DiagramConfig is part of `Config::load()` waterfall, not loaded independently via `from_env()`
+  3. Phases 01, 02, 03 each have a VALIDATION.md with `nyquist_compliant: true` and `wave_0_complete: true` frontmatter
+**Plans**: TBD
+
+Plans:
+- [ ] 08-01: Add --plantuml-path and --mermaid-path CLI flags; integrate DiagramConfig into Config waterfall
+- [ ] 08-02: Run /gsd-validate-phase for Phases 01, 02, 03 to achieve Nyquist compliance
+
 ## Progress
 
 **Execution Order:**
@@ -127,3 +176,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 3. LLM Client and Comment-Preserving Merge | 0/3 | Not started | - |
 | 4. CLI Command Wiring and Integration | 0/2 | Not started | - |
 | 5. Distribution and Claude Code Skills | 0/3 | Not started | - |
+| 6. Credential Waterfall Fix | 0/1 | Not started | - |
+| 7. Test Scaffold Completion | 0/2 | Not started | - |
+| 8. DiagramConfig Waterfall and Nyquist Compliance | 0/2 | Not started | - |

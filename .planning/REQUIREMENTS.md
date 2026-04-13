@@ -8,8 +8,8 @@
 ### Project Scaffolding
 
 - [ ] **SCAF-01**: Rust workspace builds cleanly with `cargo build`
-- [ ] **SCAF-02**: CLI binary accepts `update`, `upload`, `convert` subcommands via clap
-- [ ] **SCAF-03**: Credentials loaded via waterfall: CLI flag → env var (`ANTHROPIC_API_KEY`) → `~/.claude/` config file
+- [ ] **SCAF-02**: CLI binary accepts `update`, `upload`, `convert` subcommands via clap; `--anthropic-api-key` flag supported
+- [ ] **SCAF-03**: Credentials loaded via waterfall: CLI flag → env var (`ANTHROPIC_API_KEY`) → `~/.claude/` config file; CLI flag functional for all credentials including Anthropic API key
 - [ ] **SCAF-04**: Configuration supports Confluence base URL, API token, username, and space key
 - [ ] **SCAF-05**: Structured error types with `thiserror`; user-facing errors have clear messages
 
@@ -96,8 +96,8 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SCAF-01 | Phase 1 | Pending |
-| SCAF-02 | Phase 1 | Pending |
-| SCAF-03 | Phase 1 | Pending |
+| SCAF-02 | Phase 6 | Pending |
+| SCAF-03 | Phase 6 | Pending |
 | SCAF-04 | Phase 1 | Pending |
 | SCAF-05 | Phase 1 | Pending |
 | CONF-01 | Phase 1 | Pending |
