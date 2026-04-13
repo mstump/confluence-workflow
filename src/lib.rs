@@ -85,7 +85,7 @@ pub async fn run(cli: Cli) -> Result<CommandResult, AppError> {
                 confluence_url: cli.confluence_url,
                 confluence_username: cli.confluence_username,
                 confluence_api_token: cli.confluence_token,
-                anthropic_api_key: None,
+                anthropic_api_key: cli.anthropic_api_key.clone(),
             };
             let config = Config::load(&overrides)?;
 
@@ -163,7 +163,7 @@ pub async fn run(cli: Cli) -> Result<CommandResult, AppError> {
                 confluence_url: cli.confluence_url,
                 confluence_username: cli.confluence_username,
                 confluence_api_token: cli.confluence_token,
-                anthropic_api_key: None,
+                anthropic_api_key: cli.anthropic_api_key,
             };
             let config = Config::load(&overrides)?;
 

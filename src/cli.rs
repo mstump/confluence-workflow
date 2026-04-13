@@ -26,6 +26,10 @@ pub struct Cli {
     #[arg(long, env = "CONFLUENCE_API_TOKEN")]
     pub confluence_token: Option<String>,
 
+    /// Anthropic API key (for update command's LLM merge)
+    #[arg(long, env = "ANTHROPIC_API_KEY")]
+    pub anthropic_api_key: Option<String>,
+
     /// Enable debug logging
     #[arg(long, short)]
     pub verbose: bool,
