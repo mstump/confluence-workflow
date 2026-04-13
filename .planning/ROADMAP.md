@@ -96,8 +96,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md -- Wire all three commands (update, upload, convert) through the full pipeline; add OutputFormat enum to cli.rs
-- [ ] 04-02-PLAN.md -- Output formatting (JSON + human), tracing subscriber init, exit codes
+- [x] 04-01-PLAN.md -- Wire all three commands (update, upload, convert) through the full pipeline; add OutputFormat enum to cli.rs
+- [x] 04-02-PLAN.md -- Output formatting (JSON + human), tracing subscriber init, exit codes
 
 ### Phase 5: Distribution and Claude Code Skills
 **Goal**: The binary is installable via cargo install, callable from Claude Code skills, and built automatically for macOS and Linux via CI/CD
