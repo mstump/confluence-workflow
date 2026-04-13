@@ -221,14 +221,14 @@ fn test_update_command_missing_api_key() {
 
     let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
     cmd.arg("--confluence-url")
-        .arg("http://localhost:19999")
+        .arg("https://localhost:19999")
         .arg("--confluence-username")
         .arg("user@example.com")
         .arg("--confluence-token")
         .arg("fake-token")
         .arg("update")
         .arg(&md_path)
-        .arg("http://localhost:19999/wiki/spaces/TEST/pages/12345/Title")
+        .arg("https://localhost:19999/wiki/spaces/TEST/pages/12345/Title")
         .env_remove("ANTHROPIC_API_KEY")
         .env_remove("CONFLUENCE_URL")
         .env_remove("CONFLUENCE_USERNAME")
@@ -243,8 +243,8 @@ fn test_update_command_missing_api_key() {
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("ANTHROPIC_API_KEY") || stderr.contains("Error"),
-        "stderr should mention the missing key; got: {stderr}"
+        stderr.contains("ANTHROPIC_API_KEY"),
+        "stderr should mention the missing ANTHROPIC_API_KEY; got: {stderr}"
     );
 
     drop(md_dir);
