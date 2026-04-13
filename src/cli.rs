@@ -1,5 +1,14 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
+
+/// Output format for command results.
+#[derive(Debug, Clone, PartialEq, ValueEnum)]
+pub enum OutputFormat {
+    /// Human-readable text output (default)
+    Human,
+    /// Machine-readable JSON output
+    Json,
+}
 
 /// Convert and upload Markdown to Confluence.
 #[derive(Debug, Parser)]
@@ -20,6 +29,10 @@ pub struct Cli {
     /// Enable debug logging
     #[arg(long, short)]
     pub verbose: bool,
+
+    /// Output format (human or json)
+    #[arg(long, value_enum, default_value_t = OutputFormat::Human)]
+    pub output: OutputFormat,
 
     #[command(subcommand)]
     pub command: Commands,
