@@ -1,13 +1,13 @@
 ---
 phase: 6
 slug: credential-waterfall-fix
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: ready
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-13
 ---
 
-# Phase {N} — Validation Strategy
+# Phase 6 — Validation Strategy
 
 > Per-phase validation contract for feedback sampling during execution.
 
@@ -17,20 +17,20 @@ created: 2026-04-13
 
 | Property | Value |
 |----------|-------|
-| **Framework** | {pytest 7.x / jest 29.x / vitest / go test / other} |
-| **Config file** | {path or "none — Wave 0 installs"} |
-| **Quick run command** | `{quick command}` |
-| **Full suite command** | `{full command}` |
-| **Estimated runtime** | ~{N} seconds |
+| **Framework** | cargo test (built-in) + assert_cmd 2 |
+| **Config file** | `Cargo.toml` [dev-dependencies] |
+| **Quick run command** | `cargo test --test cli_integration test_update_command_missing_api_key` |
+| **Full suite command** | `cargo test` |
+| **Estimated runtime** | ~10 seconds |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `{quick run command}`
-- **After every plan wave:** Run `{full suite command}`
+- **After every task commit:** Run `cargo test --test cli_integration && cargo test --lib config::tests`
+- **After every plan wave:** Run `cargo test`
 - **Before `/gsd-verify-work`:** Full suite must be green
-- **Max feedback latency:** {N} seconds
+- **Max feedback latency:** 30 seconds
 
 ---
 
@@ -38,7 +38,8 @@ created: 2026-04-13
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| {N}-01-01 | 01 | 1 | REQ-{XX} | T-{N}-01 / — | {expected secure behavior or "N/A"} | unit | `{command}` | ✅ / ❌ W0 | ⬜ pending |
+| 06-01-01 | 01 | 1 | SCAF-02, SCAF-03 | T-6-01 | API key passed via flag/env, never logged | integration | `cargo test --test cli_integration test_update_command_missing_api_key` | ✅ | ⬜ pending |
+| 06-01-02 | 01 | 1 | SCAF-03 | T-6-01 | Correct error path fires for missing key (not HTTPS guard) | integration | `cargo test --test cli_integration test_update_command_missing_api_key` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -46,31 +47,23 @@ created: 2026-04-13
 
 ## Wave 0 Requirements
 
-- [ ] `{tests/test_file.py}` — stubs for REQ-{XX}
-- [ ] `{tests/conftest.py}` — shared fixtures
-- [ ] `{framework install}` — if no framework detected
-
-*If none: "Existing infrastructure covers all phase requirements."*
+Existing infrastructure covers all phase requirements. The test file (`tests/cli_integration.rs`) and test function (`test_update_command_missing_api_key`) already exist — only content needs fixing.
 
 ---
 
 ## Manual-Only Verifications
 
-| Behavior | Requirement | Why Manual | Test Instructions |
-|----------|-------------|------------|-------------------|
-| {behavior} | REQ-{XX} | {reason} | {steps} |
-
-*If none: "All phase behaviors have automated verification."*
+All phase behaviors have automated verification.
 
 ---
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < {N}s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references (none required)
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** {pending / approved YYYY-MM-DD}
+**Approval:** approved 2026-04-13
