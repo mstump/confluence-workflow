@@ -15,6 +15,7 @@ use confluence::{extract_page_id, ConfluenceApi, ConfluenceClient};
 use converter::{Converter, MarkdownConverter};
 use error::{AppError, ConfigError};
 use llm::AnthropicClient;
+use serde_json::json;
 
 /// Result of executing a CLI command, used by the output formatting layer.
 #[derive(Debug)]
@@ -31,6 +32,47 @@ pub enum CommandResult {
         output_dir: String,
         files: Vec<String>,
     },
+}
+
+/// Format a successful command result as a JSON Value per D-02.
+pub fn result_to_json(result: &CommandResult) -> serde_json::Value {
+    match result {
+        CommandResult::Update {
+            page_url,
+            comments_kept,
+            comments_dropped,
+        } => {
+            json!({
+                "success": true,
+                "page_url": page_url,
+                "comments_kept": comments_kept,
+                "comments_dropped": comments_dropped
+            })
+        }
+        CommandResult::Upload { page_url } => {
+            json!({
+                "success": true,
+                "page_url": page_url
+            })
+        }
+        CommandResult::Convert { output_dir, files } => {
+            json!({
+                "success": true,
+                "output_dir": output_dir,
+                "files": files
+            })
+        }
+    }
+}
+
+/// Format a command error as a JSON Value per D-03.
+/// The JSON schema matches the command type when known, but falls back to a
+/// generic `{ success: false, error: "..." }` shape.
+pub fn error_to_json(error: &AppError) -> serde_json::Value {
+    json!({
+        "success": false,
+        "error": error.to_string()
+    })
 }
 
 pub async fn run(cli: Cli) -> Result<CommandResult, AppError> {
