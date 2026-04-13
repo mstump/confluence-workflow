@@ -93,11 +93,11 @@ Plans:
   3. `confluence-agent convert doc.md ./output` writes storage XML and diagram SVGs to the output directory without requiring Confluence credentials
   4. `--verbose` flag produces structured tracing output showing each pipeline step; default output is minimal (success/failure + page URL)
   5. `--output json` produces machine-readable JSON on stdout with fields for success, page URL, comments kept/dropped, and errors
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Wire update command -- orchestrate convert, fetch, merge, upload with tracing spans; wire upload and convert commands
-- [ ] 04-02: Output formatting -- JSON output mode, human-readable default, verbose tracing subscriber setup, exit codes
+- [ ] 04-01-PLAN.md -- Wire all three commands (update, upload, convert) through the full pipeline; add OutputFormat enum to cli.rs
+- [ ] 04-02-PLAN.md -- Output formatting (JSON + human), tracing subscriber init, exit codes
 
 ### Phase 5: Distribution and Claude Code Skills
 **Goal**: The binary is installable via cargo install, callable from Claude Code skills, and built automatically for macOS and Linux via CI/CD
