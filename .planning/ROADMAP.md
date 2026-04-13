@@ -131,7 +131,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 06-01: Add --anthropic-api-key flag to cli.rs, wire through CliOverrides in lib.rs (update + upload arms), fix test_update_command_missing_api_key
+- [x] 06-01: Add --anthropic-api-key flag to cli.rs, wire through CliOverrides in lib.rs (update + upload arms), fix test_update_command_missing_api_key
 
 ### Phase 7: Test Scaffold Completion
 **Goal**: All test stubs specified in Phase 4 plans exist and pass; Phase 1 config tests pass reliably under parallel `cargo test`; unused dependencies removed
