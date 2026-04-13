@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Credentials are loaded from `ANTHROPIC_API_KEY` env var or `~/.claude/` config file without requiring both
   4. Confluence API errors (auth failure, 404, 409 version conflict) produce clear, actionable error messages -- not raw HTTP status codes
   5. A mock `ConfluenceApi` trait implementation can be substituted in tests without touching production code
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 - [ ] 01-01: Cargo workspace setup, module layout, error types, clap skeleton with subcommand stubs
@@ -54,7 +54,7 @@ Plans:
   3. Mermaid fenced blocks are rendered to SVG via mermaid-cli
   4. Obsidian YAML frontmatter is stripped before conversion without affecting document content
   5. A mock `Converter` trait implementation can be substituted in tests
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 - [x] 02-01: Converter spike -- attempt pulldown-cmark visitor for 5 complex test documents, compare output against Python converter; decide approach (native Rust vs fallback)
@@ -111,7 +111,7 @@ Plans:
   2. A Claude Code skill at `~/.claude/commands/confluence-update.md` invokes the binary and surfaces its JSON output to the user
   3. GitHub Actions CI produces release binaries for macOS arm64, macOS x86_64, and Linux x86_64 on tagged commits
   4. Stripped release binary is under 15 MB
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 - [ ] 05-01: Cargo packaging -- Cargo.toml metadata for crates.io, release profile (LTO, strip, panic=abort), verify cargo install works
@@ -128,7 +128,7 @@ Plans:
   2. `CliOverrides.anthropic_api_key` is `Some(key)` when the flag is provided, `None` when omitted — both update and upload arms in lib.rs
   3. `test_update_command_missing_api_key` asserts on the correct error path (missing API key, not HTTPS guard)
   4. Credential waterfall precedence for ANTHROPIC_API_KEY is: CLI flag > ANTHROPIC_API_KEY env var > .env file > ~/.claude/ config
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 06-01: Add --anthropic-api-key flag to cli.rs, wire through CliOverrides in lib.rs (update + upload arms), fix test_update_command_missing_api_key
@@ -143,7 +143,7 @@ Plans:
   2. `tests/output_format.rs` exists with a passing test_default_silent_mode test
   3. `cargo test` passes with default parallelism (no `--test-threads=1` workaround needed for config tests)
   4. `anyhow` removed from `Cargo.toml`; `cargo build` still clean
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
 - [ ] 07-01: Create tests/cli_integration.rs and tests/output_format.rs with full test implementations
@@ -158,7 +158,7 @@ Plans:
   1. `--plantuml-path` and `--mermaid-path` CLI flags override env vars `PLANTUML_PATH` / `MERMAID_PATH` when provided
   2. DiagramConfig is part of `Config::load()` waterfall, not loaded independently via `from_env()`
   3. Phases 01, 02, 03 each have a VALIDATION.md with `nyquist_compliant: true` and `wave_0_complete: true` frontmatter
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
 - [ ] 08-01: Add --plantuml-path and --mermaid-path CLI flags; integrate DiagramConfig into Config waterfall
