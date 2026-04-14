@@ -90,7 +90,8 @@ impl Config {
         let confluence_url = confluence_url.trim_end_matches('/').trim().to_string();
 
         // Threat model T-01-04: validate scheme to prevent accidental HTTP use.
-        if !confluence_url.starts_with("https://") {
+        // Use to_ascii_lowercase() so mixed-case inputs like "HTTPS://" are accepted.
+        if !confluence_url.to_ascii_lowercase().starts_with("https://") {
             return Err(ConfigError::Invalid {
                 name: "CONFLUENCE_URL",
                 reason: "must start with https://",
@@ -126,8 +127,9 @@ impl Config {
 
         let anthropic_concurrency = std::env::var("ANTHROPIC_CONCURRENCY")
             .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(5);
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(5)
+            .min(50); // prevent runaway concurrency
 
         Ok(Config {
             confluence_url,
