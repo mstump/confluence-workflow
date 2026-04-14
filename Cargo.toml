@@ -16,7 +16,6 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 clap = { version = "4.6", features = ["derive", "env"] }
 thiserror = "2.0"
-anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dirs = "6.0"
@@ -31,6 +30,7 @@ tempfile = "3"
 wiremock = "0.6"
 insta = { version = "1", features = ["json"] }
 assert_cmd = "2"
+serial_test = "3.4.0"
 
 [profile.release]
 opt-level = "z"
