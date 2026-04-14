@@ -232,6 +232,7 @@ fn load_from_claude_config(key: &str, home: Option<&Path>) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::path::PathBuf;
 
     /// A non-existent home path used in tests to prevent reading real ~/.claude/ credentials.
@@ -261,6 +262,7 @@ mod tests {
 
     // Test 2: Config falls through to env vars when CLI overrides are None.
     #[test]
+    #[serial]
     fn test_fallthrough_to_env_vars() {
         // Use unique env var names scoped to this test to avoid races.
         // We temporarily set then clear them; run tests sequentially if flaky.
@@ -286,6 +288,7 @@ mod tests {
     // resolution path is identical to env vars.  We verify by setting vars directly
     // (simulating what dotenvy does) and confirming they are picked up.
     #[test]
+    #[serial]
     fn test_env_vars_used_when_cli_absent() {
         std::env::set_var("CONFLUENCE_URL", "https://dotenv.atlassian.net");
         std::env::set_var("CONFLUENCE_USERNAME", "dotenv-user");
@@ -306,6 +309,7 @@ mod tests {
 
     // Test 4: Missing confluence_url produces ConfigError::Missing with name "CONFLUENCE_URL".
     #[test]
+    #[serial]
     fn test_missing_confluence_url_error() {
         // Provide username + token via CLI; leave URL absent from all sources.
         // Use no_home() so ~/.claude/ fallback returns None.
@@ -338,6 +342,7 @@ mod tests {
 
     // Test 5: Missing confluence_username produces ConfigError::Missing with name "CONFLUENCE_USERNAME".
     #[test]
+    #[serial]
     fn test_missing_confluence_username_error() {
         let overrides = CliOverrides {
             confluence_url: Some("https://example.atlassian.net".to_string()),
@@ -364,6 +369,7 @@ mod tests {
 
     // Test 6: Missing confluence_api_token produces ConfigError::Missing with name "CONFLUENCE_API_TOKEN".
     #[test]
+    #[serial]
     fn test_missing_confluence_api_token_error() {
         let overrides = CliOverrides {
             confluence_url: Some("https://example.atlassian.net".to_string()),
@@ -390,6 +396,7 @@ mod tests {
 
     // Test 7: anthropic_api_key is Optional and does not cause an error when absent.
     #[test]
+    #[serial]
     fn test_anthropic_api_key_optional() {
         let overrides = CliOverrides {
             confluence_url: Some("https://example.atlassian.net".to_string()),
@@ -420,6 +427,7 @@ mod tests {
     // (a) using a non-existent home dir path so the read returns None, and
     // (b) confirming the resulting error is ConfigError::Missing (not a FileRead error).
     #[test]
+    #[serial]
     fn test_claude_config_fallback_stub_then_error() {
         // Provide only username + token; omit URL so we reach the ~/.claude/ attempt.
         let overrides = CliOverrides {
