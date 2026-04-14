@@ -146,11 +146,11 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 07-01: Create tests/cli_integration.rs and tests/output_format.rs with full test implementations
-- [ ] 07-02: Fix src/config.rs parallel test race condition (serial_test crate or env isolation); remove unused anyhow dependency
+- [ ] 07-01-PLAN.md -- Verify existing test implementations meet Phase 7 success criteria (cli_integration.rs, output_format.rs)
+- [ ] 07-02-PLAN.md -- Fix config test race condition (#[serial] on 2 tests); remove unused anyhow dependency
 
 ### Phase 8: DiagramConfig Waterfall and Nyquist Compliance
-**Goal**: DiagramConfig respects the same CLI > env > config waterfall as credentials; Phases 01–03 achieve Nyquist compliance with proper VALIDATION.md frontmatter
+**Goal**: DiagramConfig respects the same CLI > env > config waterfall as credentials; Phases 01-03 achieve Nyquist compliance with proper VALIDATION.md frontmatter
 **Depends on**: Phase 6 (waterfall pattern established)
 **Requirements**: SCAF-03 (waterfall consistency for diagram paths)
 **Gap Closure:** Closes gaps from v1.0 audit
