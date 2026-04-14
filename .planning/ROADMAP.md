@@ -146,8 +146,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 07-01-PLAN.md -- Verify existing test implementations meet Phase 7 success criteria (cli_integration.rs, output_format.rs)
-- [ ] 07-02-PLAN.md -- Fix config test race condition (#[serial] on 2 tests); remove unused anyhow dependency
+- [x] 07-01-PLAN.md -- Verify existing test implementations meet Phase 7 success criteria (cli_integration.rs, output_format.rs)
+- [x] 07-02-PLAN.md -- Fix config test race condition (#[serial] on 2 tests); remove unused anyhow dependency
 
 ### Phase 8: DiagramConfig Waterfall and Nyquist Compliance
 **Goal**: DiagramConfig respects the same CLI > env > config waterfall as credentials; Phases 01-03 achieve Nyquist compliance with proper VALIDATION.md frontmatter
