@@ -333,3 +333,74 @@ fn test_upload_command_happy_path() {
     // Would need: a TLS-capable mock Confluence server OR a real Confluence instance.
     // The unit tests in src/confluence/client.rs cover the HTTP layer via wiremock.
 }
+
+// ---------------------------------------------------------------------------
+// SCAF-03: --plantuml-path and --mermaid-path flags wired through convert arm
+// ---------------------------------------------------------------------------
+
+/// convert command accepts --plantuml-path and --mermaid-path flags and
+/// succeeds, writing page.xml to the output directory (SCAF-03, task 08-01-02).
+///
+/// The markdown contains no diagram blocks so the fake paths are never
+/// invoked — the test proves only that the flags are accepted at the CLI
+/// boundary and the DiagramConfig waterfall wiring reaches the convert arm.
+#[test]
+fn test_convert_with_diagram_path_flags() {
+    let (md_dir, md_path) = temp_markdown("# Diagram Flag Test\n\nPlain content, no diagrams.\n");
+    let out_dir = TempDir::new().expect("create output dir");
+
+    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    cmd.arg("--plantuml-path")
+        .arg("/fake/plantuml")
+        .arg("--mermaid-path")
+        .arg("/fake/mmdc")
+        .arg("convert")
+        .arg(&md_path)
+        .arg(out_dir.path())
+        .env_remove("CONFLUENCE_URL")
+        .env_remove("CONFLUENCE_USERNAME")
+        .env_remove("CONFLUENCE_API_TOKEN")
+        // Override any env-var defaults so the test is deterministic
+        .env_remove("PLANTUML_PATH")
+        .env_remove("MERMAID_PATH");
+
+    let output = cmd.output().expect("run command");
+
+    // Flags must not produce "unexpected argument" — exit code must be 0
+    assert!(
+        output.status.success(),
+        "convert with --plantuml-path and --mermaid-path should exit 0; stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    // stdout contains the expected "Converted to:" line
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Converted to:"),
+        "stdout should contain 'Converted to:'; got: {stdout}"
+    );
+
+    // page.xml must be written to the output directory
+    let xml_path = out_dir.path().join("page.xml");
+    assert!(
+        xml_path.exists(),
+        "page.xml should exist in output dir; files: {:?}",
+        fs::read_dir(out_dir.path())
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect::<Vec<_>>()
+    );
+
+    // page.xml must be non-empty
+    let xml_content = fs::read_to_string(&xml_path).expect("read page.xml");
+    assert!(!xml_content.is_empty(), "page.xml should not be empty");
+
+    // Tracing output must not appear on stdout (D-07)
+    assert!(
+        !stdout.contains("DEBUG") && !stdout.contains("INFO") && !stdout.contains("TRACE"),
+        "tracing output must not appear on stdout; stdout: {stdout}"
+    );
+
+    drop(md_dir);
+    drop(out_dir);
+}
