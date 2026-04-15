@@ -30,6 +30,14 @@ pub struct Cli {
     #[arg(long, env = "ANTHROPIC_API_KEY")]
     pub anthropic_api_key: Option<String>,
 
+    /// Path to PlantUML executable or JAR
+    #[arg(long, env = "PLANTUML_PATH")]
+    pub plantuml_path: Option<String>,
+
+    /// Path to mermaid-cli executable (mmdc)
+    #[arg(long, env = "MERMAID_PATH")]
+    pub mermaid_path: Option<String>,
+
     /// Enable debug logging
     #[arg(long, short)]
     pub verbose: bool,

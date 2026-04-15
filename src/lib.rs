@@ -9,7 +9,7 @@ pub mod merge;
 use std::sync::Arc;
 
 use cli::{Cli, Commands};
-use config::{CliOverrides, Config};
+use config::{CliOverrides, Config, DiagramConfig};
 use confluence::client::update_page_with_retry;
 use confluence::{extract_page_id, ConfluenceApi, ConfluenceClient};
 use converter::{Converter, MarkdownConverter};
@@ -86,6 +86,8 @@ pub async fn run(cli: Cli) -> Result<CommandResult, AppError> {
                 confluence_username: cli.confluence_username,
                 confluence_api_token: cli.confluence_token,
                 anthropic_api_key: cli.anthropic_api_key.clone(),
+                plantuml_path: cli.plantuml_path.clone(),
+                mermaid_path: cli.mermaid_path.clone(),
             };
             let config = Config::load(&overrides)?;
 
@@ -98,7 +100,7 @@ pub async fn run(cli: Cli) -> Result<CommandResult, AppError> {
 
             // 1. Convert markdown to storage XML
             let markdown = std::fs::read_to_string(&markdown_path).map_err(AppError::Io)?;
-            let converter = MarkdownConverter::default();
+            let converter = MarkdownConverter::new(config.diagram_config.clone());
             let convert_result = converter.convert(&markdown).await?;
 
             // 2. Build Confluence client and fetch existing page
@@ -164,12 +166,14 @@ pub async fn run(cli: Cli) -> Result<CommandResult, AppError> {
                 confluence_username: cli.confluence_username,
                 confluence_api_token: cli.confluence_token,
                 anthropic_api_key: cli.anthropic_api_key,
+                plantuml_path: cli.plantuml_path.clone(),
+                mermaid_path: cli.mermaid_path.clone(),
             };
             let config = Config::load(&overrides)?;
 
             // 1. Convert markdown to storage XML
             let markdown = std::fs::read_to_string(&markdown_path).map_err(AppError::Io)?;
-            let converter = MarkdownConverter::default();
+            let converter = MarkdownConverter::new(config.diagram_config.clone());
             let convert_result = converter.convert(&markdown).await?;
 
             // 2. Build Confluence client
@@ -206,7 +210,21 @@ pub async fn run(cli: Cli) -> Result<CommandResult, AppError> {
         } => {
             // No Config::load() needed -- convert does not require Confluence credentials
             let markdown = std::fs::read_to_string(&markdown_path).map_err(AppError::Io)?;
-            let converter = MarkdownConverter::default();
+            dotenvy::dotenv().ok();
+            let diagram_config = DiagramConfig {
+                plantuml_path: cli.plantuml_path
+                    .or_else(|| std::env::var("PLANTUML_PATH").ok())
+                    .unwrap_or_else(|| "plantuml".to_string()),
+                mermaid_path: cli.mermaid_path
+                    .or_else(|| std::env::var("MERMAID_PATH").ok())
+                    .unwrap_or_else(|| "mmdc".to_string()),
+                mermaid_puppeteer_config: std::env::var("MERMAID_PUPPETEER_CONFIG").ok(),
+                timeout_secs: std::env::var("DIAGRAM_TIMEOUT")
+                    .ok()
+                    .and_then(|v| v.parse().ok())
+                    .unwrap_or(30),
+            };
+            let converter = MarkdownConverter::new(diagram_config);
             let convert_result = converter.convert(&markdown).await?;
 
             std::fs::create_dir_all(&output_dir).map_err(AppError::Io)?;

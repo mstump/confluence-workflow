@@ -49,6 +49,8 @@ pub struct CliOverrides {
     pub confluence_username: Option<String>,
     pub confluence_api_token: Option<String>,
     pub anthropic_api_key: Option<String>,
+    pub plantuml_path: Option<String>,
+    pub mermaid_path: Option<String>,
 }
 
 /// Resolved, validated application configuration.
@@ -60,6 +62,7 @@ pub struct Config {
     pub anthropic_api_key: Option<String>,
     pub anthropic_model: String,
     pub anthropic_concurrency: usize,
+    pub diagram_config: DiagramConfig,
 }
 
 impl Config {
@@ -131,6 +134,31 @@ impl Config {
             .unwrap_or(5)
             .min(50); // prevent runaway concurrency
 
+        let plantuml_path = Self::resolve_optional(
+            overrides.plantuml_path.as_deref(),
+            "PLANTUML_PATH",
+            home,
+        ).unwrap_or_else(|| "plantuml".to_string());
+
+        let mermaid_path = Self::resolve_optional(
+            overrides.mermaid_path.as_deref(),
+            "MERMAID_PATH",
+            home,
+        ).unwrap_or_else(|| "mmdc".to_string());
+
+        let mermaid_puppeteer_config = std::env::var("MERMAID_PUPPETEER_CONFIG").ok();
+        let timeout_secs = std::env::var("DIAGRAM_TIMEOUT")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(30);
+
+        let diagram_config = DiagramConfig {
+            plantuml_path,
+            mermaid_path,
+            mermaid_puppeteer_config,
+            timeout_secs,
+        };
+
         Ok(Config {
             confluence_url,
             confluence_username,
@@ -138,6 +166,7 @@ impl Config {
             anthropic_api_key,
             anthropic_model,
             anthropic_concurrency,
+            diagram_config,
         })
     }
 
@@ -250,6 +279,7 @@ mod tests {
             confluence_username: Some("user@example.com".to_string()),
             confluence_api_token: Some("token123".to_string()),
             anthropic_api_key: Some("ant-key".to_string()),
+            ..Default::default()
         };
 
         // CLI values override everything; use no_home() so ~/.claude/ is never checked.
@@ -405,6 +435,7 @@ mod tests {
             confluence_username: Some("user@example.com".to_string()),
             confluence_api_token: Some("token".to_string()),
             anthropic_api_key: None,
+            ..Default::default()
         };
 
         // Remove ANTHROPIC_API_KEY from env so only CLI (which is None) is checked.
@@ -500,5 +531,86 @@ mod tests {
             }
             other => panic!("expected ConfigError::Invalid for http URL, got: {other:?}"),
         }
+    }
+
+    // Test 11: --plantuml-path CLI override propagates through waterfall into diagram_config.
+    #[test]
+    #[serial]
+    fn test_plantuml_path_cli_override() {
+        let overrides = CliOverrides {
+            confluence_url: Some("https://example.atlassian.net".to_string()),
+            confluence_username: Some("user@example.com".to_string()),
+            confluence_api_token: Some("token".to_string()),
+            plantuml_path: Some("/custom/plantuml".to_string()),
+            ..Default::default()
+        };
+        let saved = std::env::var("PLANTUML_PATH").ok();
+        std::env::remove_var("PLANTUML_PATH");
+
+        let config = Config::load_with_home(&overrides, Some(&no_home()))
+            .expect("should load with plantuml_path override");
+
+        match saved {
+            Some(v) => std::env::set_var("PLANTUML_PATH", v),
+            None => std::env::remove_var("PLANTUML_PATH"),
+        }
+
+        assert_eq!(config.diagram_config.plantuml_path, "/custom/plantuml");
+    }
+
+    // Test 12: --mermaid-path CLI override propagates through waterfall into diagram_config.
+    #[test]
+    #[serial]
+    fn test_mermaid_path_cli_override() {
+        let overrides = CliOverrides {
+            confluence_url: Some("https://example.atlassian.net".to_string()),
+            confluence_username: Some("user@example.com".to_string()),
+            confluence_api_token: Some("token".to_string()),
+            mermaid_path: Some("/custom/mmdc".to_string()),
+            ..Default::default()
+        };
+        let saved = std::env::var("MERMAID_PATH").ok();
+        std::env::remove_var("MERMAID_PATH");
+
+        let config = Config::load_with_home(&overrides, Some(&no_home()))
+            .expect("should load with mermaid_path override");
+
+        match saved {
+            Some(v) => std::env::set_var("MERMAID_PATH", v),
+            None => std::env::remove_var("MERMAID_PATH"),
+        }
+
+        assert_eq!(config.diagram_config.mermaid_path, "/custom/mmdc");
+    }
+
+    // Test 13: When no CLI override or env var is set, diagram paths default to "plantuml"/"mmdc".
+    #[test]
+    #[serial]
+    fn test_diagram_config_defaults_when_no_override() {
+        let overrides = CliOverrides {
+            confluence_url: Some("https://example.atlassian.net".to_string()),
+            confluence_username: Some("user@example.com".to_string()),
+            confluence_api_token: Some("token".to_string()),
+            ..Default::default()
+        };
+        let saved_p = std::env::var("PLANTUML_PATH").ok();
+        let saved_m = std::env::var("MERMAID_PATH").ok();
+        std::env::remove_var("PLANTUML_PATH");
+        std::env::remove_var("MERMAID_PATH");
+
+        let config = Config::load_with_home(&overrides, Some(&no_home()))
+            .expect("should load with default diagram paths");
+
+        match saved_p {
+            Some(v) => std::env::set_var("PLANTUML_PATH", v),
+            None => std::env::remove_var("PLANTUML_PATH"),
+        }
+        match saved_m {
+            Some(v) => std::env::set_var("MERMAID_PATH", v),
+            None => std::env::remove_var("MERMAID_PATH"),
+        }
+
+        assert_eq!(config.diagram_config.plantuml_path, "plantuml");
+        assert_eq!(config.diagram_config.mermaid_path, "mmdc");
     }
 }
