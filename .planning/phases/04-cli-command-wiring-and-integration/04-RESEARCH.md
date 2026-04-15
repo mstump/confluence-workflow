@@ -422,17 +422,19 @@ Note: The existing stub passes raw markdown content. Phase 4 replaces this with 
 
 **Only 2 assumptions — both are low-risk implementation details easily resolved by reading client.rs during planning.**
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **update_page_with_retry signature for title**
+1. **update_page_with_retry signature for title** — RESOLVED
    - What we know: The function exists in `confluence::client` and is used in the upload stub
-   - What's unclear: Whether it takes a `title` parameter (needed for update_page API call)
+   - What was unclear: Whether it takes a `title` parameter (needed for update_page API call)
    - Recommendation: Read the rest of `src/confluence/client.rs` before writing the update command plan
+   - **Resolution:** Confirmed during planning. `update_page_with_retry(client, page_id, content, max_retries)` does NOT take a title parameter. It internally calls `get_page()` to fetch the current version and title, then passes them through to `update_page()`. No title param needed from the caller. See Plan 04-01 interface section for the verified signature.
 
-2. **JSON mode exit code**
+2. **JSON mode exit code** — RESOLVED
    - What we know: D-09 requires exit code 1 on failure; D-03 requires error JSON on stdout
-   - What's unclear: Exact mechanism — does `run()` return Ok(()) after emitting error JSON, then main calls exit(1)?
+   - What was unclear: Exact mechanism — does `run()` return Ok(()) after emitting error JSON, then main calls exit(1)?
    - Recommendation: `run()` returns `Ok(())` always in JSON mode; emit JSON first, then `std::process::exit(1)` for failures
+   - **Resolution:** Confirmed in Plans 04-01/04-02. `run()` returns `Result<CommandResult, AppError>`. In `main.rs`, the caller matches on the output format: in JSON mode, both Ok and Err are serialized to JSON on stdout, then `std::process::exit(1)` is called for Err. In human mode, Err prints to stderr and calls `std::process::exit(1)`. The `main()` function does not return `Result` — it handles exit codes explicitly.
 
 ## Environment Availability
 
