@@ -161,8 +161,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 08-01: Add --plantuml-path and --mermaid-path CLI flags; integrate DiagramConfig into Config waterfall
-- [ ] 08-02: Run /gsd-validate-phase for Phases 01, 02, 03 to achieve Nyquist compliance
+- [x] 08-01: Add --plantuml-path and --mermaid-path CLI flags; integrate DiagramConfig into Config waterfall
+- [x] 08-02: Run /gsd-validate-phase for Phases 01, 02, 03 to achieve Nyquist compliance
 
 ## Progress
 
