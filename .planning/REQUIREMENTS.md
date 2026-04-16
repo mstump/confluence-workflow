@@ -95,36 +95,36 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCAF-01 | Phase 1 | Pending |
-| SCAF-02 | Phase 6 | Pending |
-| SCAF-03 | Phase 6 | Pending |
-| SCAF-04 | Phase 1 | Pending |
-| SCAF-05 | Phase 1 | Pending |
-| CONF-01 | Phase 1 | Pending |
-| CONF-02 | Phase 1 | Pending |
-| CONF-03 | Phase 1 | Pending |
-| CONF-04 | Phase 1 | Pending |
-| CONF-05 | Phase 1 | Pending |
-| CONV-01 | Phase 2 | Pending |
-| CONV-02 | Phase 2 | Pending |
-| CONV-03 | Phase 2 | Pending |
-| CONV-04 | Phase 2 | Pending |
-| CONV-05 | Phase 2 | Pending |
-| LLM-01 | Phase 3 | Pending |
-| LLM-02 | Phase 3 | Pending |
-| LLM-03 | Phase 3 | Pending |
-| LLM-04 | Phase 3 | Pending |
-| MERGE-01 | Phase 3 | Pending |
-| MERGE-02 | Phase 3 | Pending |
-| MERGE-03 | Phase 3 | Pending |
-| MERGE-04 | Phase 3 | Pending |
-| MERGE-05 | Phase 3 | Pending |
-| MERGE-06 | Phase 3 | Pending |
-| CLI-01 | Phase 4 | Pending |
-| CLI-02 | Phase 4 | Pending |
-| CLI-03 | Phase 4 | Pending |
-| CLI-04 | Phase 4 | Pending |
-| CLI-05 | Phase 4 | Pending |
+| SCAF-01 | Phase 1 | Satisfied |
+| SCAF-02 | Phase 6 | Satisfied |
+| SCAF-03 | Phase 6 / Phase 9 (gap closure) | Satisfied (integration gap: convert arm — closes in Phase 9) |
+| SCAF-04 | Phase 1 | Satisfied |
+| SCAF-05 | Phase 1 | Satisfied |
+| CONF-01 | Phase 1 | Satisfied |
+| CONF-02 | Phase 1 | Satisfied |
+| CONF-03 | Phase 1 | Satisfied |
+| CONF-04 | Phase 1 | Satisfied |
+| CONF-05 | Phase 1 | Satisfied |
+| CONV-01 | Phase 2 | Satisfied |
+| CONV-02 | Phase 2 | Satisfied |
+| CONV-03 | Phase 2 | Satisfied |
+| CONV-04 | Phase 2 | Satisfied |
+| CONV-05 | Phase 2 | Satisfied |
+| LLM-01 | Phase 3 | Satisfied |
+| LLM-02 | Phase 3 | Satisfied |
+| LLM-03 | Phase 3 | Satisfied |
+| LLM-04 | Phase 3 | Satisfied |
+| MERGE-01 | Phase 3 | Satisfied |
+| MERGE-02 | Phase 3 | Satisfied |
+| MERGE-03 | Phase 3 | Satisfied |
+| MERGE-04 | Phase 3 | Satisfied |
+| MERGE-05 | Phase 3 | Satisfied |
+| MERGE-06 | Phase 3 | Satisfied |
+| CLI-01 | Phase 4 / Phase 10 (test coverage) | Satisfied (happy-path test gap — closes in Phase 10) |
+| CLI-02 | Phase 4 / Phase 10 (test coverage) | Satisfied (happy-path test gap — closes in Phase 10) |
+| CLI-03 | Phase 4 | Satisfied |
+| CLI-04 | Phase 4 | Satisfied |
+| CLI-05 | Phase 4 | Satisfied |
 | DIST-01 | Phase 5 | Pending |
 | DIST-02 | Phase 5 | Pending |
 | DIST-03 | Phase 5 | Pending |
@@ -134,9 +134,11 @@
 
 - v1 requirements: 34 total
 - Mapped to phases: 34
+- Satisfied: 30 ✓
+- Pending (gap closure phases): 4 (DIST-01..04 — Phase 5)
 - Unmapped: 0 ✓
 
 ---
 
 Requirements defined: 2026-04-10
-Last updated: 2026-04-10 after initial definition
+Last updated: 2026-04-16 after v1.0 audit gap closure planning (Phases 9, 10 added)

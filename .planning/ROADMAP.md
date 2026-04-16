@@ -164,18 +164,52 @@ Plans:
 - [x] 08-01: Add --plantuml-path and --mermaid-path CLI flags; integrate DiagramConfig into Config waterfall
 - [x] 08-02: Run /gsd-validate-phase for Phases 01, 02, 03 to achieve Nyquist compliance
 
+### Phase 9: Convert Waterfall Fix and Phase 08 Verification
+**Goal**: The `convert` arm routes through `Config::load()` for full 3-tier waterfall consistency (closing the SCAF-03 WARNING); Phase 08 produces a goal-backward VERIFICATION.md
+**Depends on**: Phase 8
+**Requirements**: SCAF-03 (integration gap closure — convert arm waterfall)
+**Gap Closure:** Closes gaps from v1.0 audit
+**Success Criteria** (what must be TRUE):
+  1. `convert` arm in `src/lib.rs` calls `Config::load()` instead of building `DiagramConfig` manually — the `~/.claude/settings.json` tier is applied for diagram paths
+  2. `test_convert_with_diagram_path_flags` still passes; a new test exercises the env-var tier for convert
+  3. Phase 08 VERIFICATION.md exists confirming all Phase 08 success criteria are met in the codebase
+**Plans**: 2 plans
+
+Plans:
+- [ ] 09-01: Fix `convert` arm to call `Config::load()` instead of manual DiagramConfig construction; add env-var tier test
+- [ ] 09-02: Produce Phase 08 VERIFICATION.md via goal-backward analysis of Phase 08 success criteria
+
+### Phase 10: Tech Debt — Integration Test Coverage and API Cleanup
+**Goal**: Add passing integration tests for the update and upload happy paths; remove the dead `DiagramConfig::from_env()` public API
+**Depends on**: Phase 9
+**Requirements**: CLI-01 (test coverage), CLI-02 (test coverage)
+**Gap Closure:** Closes tech debt items from v1.0 audit
+**Success Criteria** (what must be TRUE):
+  1. `test_upload_command_happy_path` is no longer `#[ignore]` and passes (or replaced by an equivalent passing test using a mock HTTP server)
+  2. A passing integration test covers the `update` command happy path end-to-end (mocked Confluence + LLM)
+  3. `DiagramConfig::from_env()` is private or removed; no production callers use it; `cargo build` clean
+
+**Plans**: 2 plans
+
+Plans:
+
+- [ ] 10-01: Fix `test_upload_command_happy_path` `#[ignore]`; add `update` command happy-path integration test using mock HTTP clients
+- [ ] 10-02: Make `DiagramConfig::from_env()` private or remove it; verify `Converter` trait is exercised in the integration test path
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Scaffolding and Confluence API Client | 0/3 | Not started | - |
-| 2. Markdown-to-Confluence Converter | 0/3 | Not started | - |
-| 3. LLM Client and Comment-Preserving Merge | 0/3 | Not started | - |
-| 4. CLI Command Wiring and Integration | 0/2 | Not started | - |
+| 1. Scaffolding and Confluence API Client | 3/3 | Complete | 2026-04-10 |
+| 2. Markdown-to-Confluence Converter | 3/3 | Complete | 2026-04-10 |
+| 3. LLM Client and Comment-Preserving Merge | 3/3 | Complete | 2026-04-10 |
+| 4. CLI Command Wiring and Integration | 2/2 | Complete | 2026-04-10 |
 | 5. Distribution and Claude Code Skills | 0/3 | Not started | - |
-| 6. Credential Waterfall Fix | 0/1 | Not started | - |
-| 7. Test Scaffold Completion | 0/2 | Not started | - |
-| 8. DiagramConfig Waterfall and Nyquist Compliance | 0/2 | Not started | - |
+| 6. Credential Waterfall Fix | 1/1 | Complete | 2026-04-14 |
+| 7. Test Scaffold Completion | 2/2 | Complete | 2026-04-15 |
+| 8. DiagramConfig Waterfall and Nyquist Compliance | 2/2 | Complete | 2026-04-16 |
+| 9. Convert Waterfall Fix and Phase 08 Verification | 0/2 | Not started | - |
+| 10. Tech Debt — Integration Test Coverage and API Cleanup | 0/2 | Not started | - |
