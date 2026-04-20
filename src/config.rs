@@ -98,12 +98,8 @@ impl Config {
             home,
         );
 
-        let anthropic_model = Self::resolve_optional(
-            None,
-            "ANTHROPIC_MODEL",
-            home,
-        )
-        .unwrap_or_else(|| "claude-haiku-4-5-20251001".to_string());
+        let anthropic_model = std::env::var("ANTHROPIC_MODEL")
+            .unwrap_or_else(|_| "claude-haiku-4-5-20251001".to_string());
 
         let anthropic_concurrency = std::env::var("ANTHROPIC_CONCURRENCY")
             .ok()
