@@ -1,9 +1,12 @@
 //! Integration tests for CLI command wiring (CLI-01, CLI-02, CLI-03, CLI-05).
 
 use assert_cmd::Command;
+use serde_json::json;
 use serial_test::serial;
 use std::fs;
 use tempfile::TempDir;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -16,6 +19,65 @@ fn temp_markdown(content: &str) -> (TempDir, std::path::PathBuf) {
     let md_path = dir.path().join("doc.md");
     fs::write(&md_path, content).expect("write temp markdown");
     (dir, md_path)
+}
+
+/// Build a Confluence GET-page response body. Used by both happy-path tests.
+///
+/// The body contains one inline-comment-marker inside an `<h2>Context</h2>`
+/// section; the matching section in the converted markdown has different
+/// paragraph text, so the merge classifier produces an ambiguous marker that
+/// fans out to the LLM. Deviation from plan 10-01: the original helper had
+/// no heading, which caused the marker to be deterministically DROPPED (no
+/// LLM call) and broke the `received_requests()` assertion. Using a heading
+/// that matches the markdown forces the LLM path.
+fn page_json_with_comment(id: &str, version: u32) -> serde_json::Value {
+    json!({
+        "id": id,
+        "title": "Happy Path Test Page",
+        "body": {
+            "storage": {
+                "value": "<h2>Context</h2><p>Before <ac:inline-comment-marker ac:ref=\"abc-123\">important</ac:inline-comment-marker> after.</p>",
+                "representation": "storage"
+            }
+        },
+        "version": { "number": version }
+    })
+}
+
+/// Build a Confluence GET-page response body with no inline-comment-markers.
+/// Used by the upload happy-path test (upload bypasses the merge pipeline
+/// entirely, so the body content does not matter for correctness — this
+/// helper keeps the test body minimal).
+fn page_json_plain(id: &str, version: u32) -> serde_json::Value {
+    json!({
+        "id": id,
+        "title": "Upload Test",
+        "body": {
+            "storage": {
+                "value": "<p>old content</p>",
+                "representation": "storage"
+            }
+        },
+        "version": { "number": version }
+    })
+}
+
+/// Copy of `tests/llm_integration.rs::tool_use_response` — a KEEP decision
+/// response shaped for the merge engine's evaluate_comment tool.
+fn anthropic_tool_use_keep_response() -> serde_json::Value {
+    json!({
+        "id": "msg_test",
+        "model": "claude-haiku-4-5-20251001",
+        "stop_reason": "tool_use",
+        "content": [
+            {
+                "type": "tool_use",
+                "id": "toolu_test",
+                "name": "evaluate_comment",
+                "input": { "decision": "KEEP" }
+            }
+        ]
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -324,15 +386,75 @@ fn test_upload_command_rejects_http_url() {
     drop(md_dir);
 }
 
-/// upload command happy-path against a live Confluence instance.
-/// Blocked at binary level: Config enforces https:// but wiremock is http-only.
-/// TLS-capable mock server would be required to automate this path end-to-end.
-/// The ConfluenceClient layer is already tested via unit tests in src/confluence/client.rs.
-#[test]
-#[ignore = "happy-path requires https:// server; wiremock is http-only (T-01-04 constraint)"]
-fn test_upload_command_happy_path() {
-    // Would need: a TLS-capable mock Confluence server OR a real Confluence instance.
-    // The unit tests in src/confluence/client.rs cover the HTTP layer via wiremock.
+/// upload command happy path: convert → fetch (current page for version) →
+/// upload attachments → PUT (CLI-02). No LLM / no Anthropic mock — upload
+/// bypasses the merge pipeline. Per D-01 (localhost exemption) + D-02.
+#[tokio::test]
+#[serial]
+async fn test_upload_command_happy_path() {
+    let confluence = MockServer::start().await;
+    let page_id = "54321";
+
+    Mock::given(method("GET"))
+        .and(path(format!("/rest/api/content/{page_id}")))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(page_json_plain(page_id, 3)),
+        )
+        .mount(&confluence)
+        .await;
+
+    Mock::given(method("PUT"))
+        .and(path(format!("/rest/api/content/{page_id}")))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(page_json_plain(page_id, 4)),
+        )
+        .mount(&confluence)
+        .await;
+
+    let (md_dir, md_path) = temp_markdown("# Upload Test\n\nContent.\n");
+    let page_url = format!(
+        "{}/wiki/spaces/TEST/pages/{page_id}/Title",
+        confluence.uri()
+    );
+
+    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    cmd.arg("--confluence-url")
+        .arg(confluence.uri())
+        .arg("--confluence-username")
+        .arg("user@example.com")
+        .arg("--confluence-token")
+        .arg("fake-token")
+        .arg("upload")
+        .arg(&md_path)
+        .arg(&page_url)
+        .env_remove("CONFLUENCE_URL")
+        .env_remove("CONFLUENCE_USERNAME")
+        .env_remove("CONFLUENCE_API_TOKEN")
+        .env_remove("ANTHROPIC_API_KEY")
+        .env_remove("ANTHROPIC_BASE_URL");
+
+    let output = cmd.output().expect("run command");
+
+    assert!(
+        output.status.success(),
+        "upload happy path should exit 0; stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Uploaded to:"),
+        "stdout should contain 'Uploaded to:'; got: {stdout}"
+    );
+    assert!(
+        !stdout.contains("DEBUG")
+            && !stdout.contains("INFO")
+            && !stdout.contains("TRACE"),
+        "tracing must not appear on stdout (D-07); got: {stdout}"
+    );
+
+    drop(md_dir);
 }
 
 // ---------------------------------------------------------------------------
@@ -474,4 +596,109 @@ fn test_convert_with_env_var_diagram_paths() {
 
     drop(md_dir);
     drop(out_dir);
+}
+
+// ---------------------------------------------------------------------------
+// CLI-01: update command happy path — full pipeline with wiremock for both
+// Confluence and Anthropic. Per D-01 (localhost exemption), D-02 (wiremock for
+// both), D-03 (ANTHROPIC_BASE_URL env-var override on AnthropicClient::new).
+// ---------------------------------------------------------------------------
+
+/// update command happy path: convert → fetch → merge (with LLM) → upload (CLI-01).
+#[tokio::test]
+#[serial]
+async fn test_update_command_happy_path() {
+    // --- Arrange Confluence wiremock ---
+    let confluence = MockServer::start().await;
+    let page_id = "12345";
+
+    Mock::given(method("GET"))
+        .and(path(format!("/rest/api/content/{page_id}")))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(page_json_with_comment(page_id, 7)),
+        )
+        .mount(&confluence)
+        .await;
+
+    Mock::given(method("PUT"))
+        .and(path(format!("/rest/api/content/{page_id}")))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(page_json_with_comment(page_id, 8)),
+        )
+        .mount(&confluence)
+        .await;
+
+    // --- Arrange Anthropic wiremock (endpoint is the full URL, so match on "/") ---
+    let anthropic = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(anthropic_tool_use_keep_response()),
+        )
+        .mount(&anthropic)
+        .await;
+
+    // --- Arrange test inputs ---
+    // Markdown intentionally echoes the `## Context` heading from the mocked
+    // page body so the classifier finds a matching section with differing
+    // content — this is the ambiguous path that fans out to the LLM.
+    let (md_dir, md_path) =
+        temp_markdown("# Happy Path\n\n## Context\n\nA completely different body here.\n");
+    let page_url = format!(
+        "{}/wiki/spaces/TEST/pages/{page_id}/Title",
+        confluence.uri()
+    );
+
+    // --- Act: spawn the binary ---
+    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    cmd.arg("--confluence-url")
+        .arg(confluence.uri())
+        .arg("--confluence-username")
+        .arg("user@example.com")
+        .arg("--confluence-token")
+        .arg("fake-token")
+        .arg("--anthropic-api-key")
+        .arg("fake-anthropic-key")
+        .arg("update")
+        .arg(&md_path)
+        .arg(&page_url)
+        .env("ANTHROPIC_BASE_URL", anthropic.uri())
+        .env_remove("CONFLUENCE_URL")
+        .env_remove("CONFLUENCE_USERNAME")
+        .env_remove("CONFLUENCE_API_TOKEN");
+
+    let output = cmd.output().expect("run command");
+
+    // --- Assert ---
+    assert!(
+        output.status.success(),
+        "update happy path should exit 0; stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Updated page:"),
+        "stdout should contain 'Updated page:'; got: {stdout}"
+    );
+    assert!(
+        !stdout.contains("DEBUG")
+            && !stdout.contains("INFO")
+            && !stdout.contains("TRACE"),
+        "tracing must not appear on stdout (D-07); got: {stdout}"
+    );
+
+    // Verify the LLM was actually called (proves ANTHROPIC_BASE_URL wiring + D-03).
+    let llm_requests = anthropic
+        .received_requests()
+        .await
+        .expect("wiremock records requests");
+    assert!(
+        !llm_requests.is_empty(),
+        "LLM should have been called for the inline comment marker"
+    );
+
+    drop(md_dir);
 }
