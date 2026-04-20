@@ -165,19 +165,20 @@ Plans:
 - [x] 08-02: Run /gsd-validate-phase for Phases 01, 02, 03 to achieve Nyquist compliance
 
 ### Phase 9: Convert Waterfall Fix and Phase 08 Verification
-**Goal**: The `convert` arm routes through `Config::load()` for full 3-tier waterfall consistency (closing the SCAF-03 WARNING); Phase 08 produces a goal-backward VERIFICATION.md
+**Goal**: The `convert` arm's diagram-path resolution trusts clap-derive's `#[arg(long, env = "...")]` (no duplicate `std::env::var` lookups, `CliOverrides` indirection removed) — closing the SCAF-03 WARNING; Phase 08 produces a goal-backward VERIFICATION.md
 **Depends on**: Phase 8
 **Requirements**: SCAF-03 (integration gap closure — convert arm waterfall)
 **Gap Closure:** Closes gaps from v1.0 audit
 **Success Criteria** (what must be TRUE):
-  1. `convert` arm in `src/lib.rs` calls `Config::load()` instead of building `DiagramConfig` manually — the `~/.claude/settings.json` tier is applied for diagram paths
-  2. `test_convert_with_diagram_path_flags` still passes; a new test exercises the env-var tier for convert
-  3. Phase 08 VERIFICATION.md exists confirming all Phase 08 success criteria are met in the codebase
+  1. The `CliOverrides` struct is deleted from `src/config.rs` and `src/lib.rs`; `Config::load()` takes `&Cli` directly; `dotenvy::dotenv()` is called once in `src/main.rs` before `Cli::parse()`
+  2. The convert arm in `src/lib.rs` reads `cli.plantuml_path` and `cli.mermaid_path` directly (no `std::env::var("PLANTUML_PATH")` / `std::env::var("MERMAID_PATH")` calls remain)
+  3. A new `test_convert_with_env_var_diagram_paths` integration test passes, exercising the env-var tier end-to-end; existing `test_convert_with_diagram_path_flags` still passes (CLI-tier regression check)
+  4. Phase 08 VERIFICATION.md exists confirming all Phase 08 success criteria are met in the codebase
 **Plans**: 2 plans
 
 Plans:
-- [ ] 09-01: Fix `convert` arm to call `Config::load()` instead of manual DiagramConfig construction; add env-var tier test
-- [ ] 09-02: Produce Phase 08 VERIFICATION.md via goal-backward analysis of Phase 08 success criteria
+- [ ] 09-01-PLAN.md — Produce Phase 08 VERIFICATION.md via goal-backward analysis of Phase 08's 9 must-have truths (Wave 1, runs first so evidence reflects Phase 08's state at close)
+- [ ] 09-02-PLAN.md — Refactor config to trust clap-derive: delete CliOverrides, change `Config::load` signature to `&Cli`, hoist dotenvy to main.rs, simplify convert arm, add env-var-tier integration test (Wave 2, depends on 09-01)
 
 ### Phase 10: Tech Debt — Integration Test Coverage and API Cleanup
 **Goal**: Add passing integration tests for the update and upload happy paths; remove the dead `DiagramConfig::from_env()` public API
