@@ -176,53 +176,6 @@ mod tests {
         }
     }
 
-    // Note: DiagramConfig env tests use a single combined test to avoid
-    // parallel env var race conditions (same pattern as Phase 1 config tests).
-    #[test]
-    fn test_diagram_config_from_env() {
-        // Save existing values
-        let saved_plantuml = std::env::var("PLANTUML_PATH").ok();
-        let saved_mermaid = std::env::var("MERMAID_PATH").ok();
-        let saved_timeout = std::env::var("DIAGRAM_TIMEOUT").ok();
-        let saved_puppeteer = std::env::var("MERMAID_PUPPETEER_CONFIG").ok();
-
-        // Test defaults (clear all)
-        std::env::remove_var("PLANTUML_PATH");
-        std::env::remove_var("MERMAID_PATH");
-        std::env::remove_var("DIAGRAM_TIMEOUT");
-        std::env::remove_var("MERMAID_PUPPETEER_CONFIG");
-
-        let config = DiagramConfig::from_env();
-        assert_eq!(config.plantuml_path, "plantuml");
-        assert_eq!(config.mermaid_path, "mmdc");
-        assert_eq!(config.timeout_secs, 30);
-        assert!(config.mermaid_puppeteer_config.is_none());
-
-        // Test custom plantuml path
-        std::env::set_var("PLANTUML_PATH", "/usr/local/bin/plantuml");
-        let config = DiagramConfig::from_env();
-        assert_eq!(config.plantuml_path, "/usr/local/bin/plantuml");
-        std::env::remove_var("PLANTUML_PATH");
-
-        // Test custom mermaid path
-        std::env::set_var("MERMAID_PATH", "/usr/local/bin/mmdc");
-        let config = DiagramConfig::from_env();
-        assert_eq!(config.mermaid_path, "/usr/local/bin/mmdc");
-        std::env::remove_var("MERMAID_PATH");
-
-        // Test custom timeout
-        std::env::set_var("DIAGRAM_TIMEOUT", "60");
-        let config = DiagramConfig::from_env();
-        assert_eq!(config.timeout_secs, 60);
-        std::env::remove_var("DIAGRAM_TIMEOUT");
-
-        // Restore saved values
-        if let Some(v) = saved_plantuml { std::env::set_var("PLANTUML_PATH", v); }
-        if let Some(v) = saved_mermaid { std::env::set_var("MERMAID_PATH", v); }
-        if let Some(v) = saved_timeout { std::env::set_var("DIAGRAM_TIMEOUT", v); }
-        if let Some(v) = saved_puppeteer { std::env::set_var("MERMAID_PUPPETEER_CONFIG", v); }
-    }
-
     #[tokio::test]
     async fn test_render_plantuml_invalid_binary_returns_error() {
         let config = DiagramConfig {

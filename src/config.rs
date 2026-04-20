@@ -20,29 +20,6 @@ pub struct DiagramConfig {
     pub timeout_secs: u64,
 }
 
-impl DiagramConfig {
-    /// Load from environment variables with sensible defaults.
-    pub fn from_env() -> Self {
-        Self {
-            plantuml_path: std::env::var("PLANTUML_PATH")
-                .unwrap_or_else(|_| "plantuml".to_string()),
-            mermaid_path: std::env::var("MERMAID_PATH")
-                .unwrap_or_else(|_| "mmdc".to_string()),
-            mermaid_puppeteer_config: std::env::var("MERMAID_PUPPETEER_CONFIG").ok(),
-            timeout_secs: std::env::var("DIAGRAM_TIMEOUT")
-                .ok()
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(30),
-        }
-    }
-}
-
-impl Default for DiagramConfig {
-    fn default() -> Self {
-        Self::from_env()
-    }
-}
-
 /// Resolved, validated application configuration.
 #[derive(Debug)]
 pub struct Config {

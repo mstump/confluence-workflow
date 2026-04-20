@@ -1,6 +1,20 @@
 use super::*;
 use crate::error::ConversionError;
 
+/// Test-scope DiagramConfig literal — replaces the deleted Default impls on
+/// DiagramConfig and MarkdownConverter (removed in Phase 10-02, D-04).
+/// Values match the former defaults: plantuml_path="plantuml",
+/// mermaid_path="mmdc", no puppeteer config, 30-sec timeout.
+/// Mirrors the pattern used by `config_with_defaults` in `src/converter/diagrams.rs`.
+fn test_diagram_config() -> crate::config::DiagramConfig {
+    crate::config::DiagramConfig {
+        plantuml_path: "plantuml".to_string(),
+        mermaid_path: "mmdc".to_string(),
+        mermaid_puppeteer_config: None,
+        timeout_secs: 30,
+    }
+}
+
 /// Mock converter that returns a fixed result -- proves the trait is implementable.
 struct MockConverter;
 
@@ -84,7 +98,7 @@ fn test_conversion_error_into_app_error() {
 
 #[tokio::test]
 async fn test_converter_trait_empty_input() {
-    let converter = MarkdownConverter::default();
+    let converter = MarkdownConverter::new(test_diagram_config());
     let result = converter.convert("").await.unwrap();
     assert!(
         result.storage_xml.is_empty() || result.storage_xml.trim().is_empty(),
@@ -96,7 +110,7 @@ async fn test_converter_trait_empty_input() {
 
 #[tokio::test]
 async fn test_converter_trait_whitespace_only() {
-    let converter = MarkdownConverter::default();
+    let converter = MarkdownConverter::new(test_diagram_config());
     let result = converter.convert("   \n\n  ").await.unwrap();
     // Should not crash; output may be empty or whitespace
     assert!(result.attachments.is_empty());
@@ -104,7 +118,7 @@ async fn test_converter_trait_whitespace_only() {
 
 #[tokio::test]
 async fn test_converter_trait_frontmatter_stripped() {
-    let converter = MarkdownConverter::default();
+    let converter = MarkdownConverter::new(test_diagram_config());
     let md = include_str!("../../tests/fixtures/frontmatter_document.md");
     let result = converter.convert(md).await.unwrap();
     assert!(
@@ -121,7 +135,7 @@ async fn test_converter_trait_frontmatter_stripped() {
 
 #[tokio::test]
 async fn test_no_diagrams_no_attachments() {
-    let config = crate::config::DiagramConfig::default();
+    let config = test_diagram_config();
     let converter = MarkdownConverter::new(config);
     let result = converter.convert("## Hello\n\nA paragraph.").await.unwrap();
     assert!(result.attachments.is_empty());
@@ -139,7 +153,7 @@ async fn test_plantuml_rendering_integration() {
         eprintln!("Skipping: plantuml not installed");
         return;
     }
-    let config = crate::config::DiagramConfig::default();
+    let config = test_diagram_config();
     let converter = MarkdownConverter::new(config);
     let md = include_str!("../../tests/fixtures/plantuml_diagram.md");
     let result = converter.convert(md).await.unwrap();
@@ -162,7 +176,7 @@ async fn test_mermaid_rendering_integration() {
         eprintln!("Skipping: mmdc not installed");
         return;
     }
-    let config = crate::config::DiagramConfig::default();
+    let config = test_diagram_config();
     let converter = MarkdownConverter::new(config);
     let md = include_str!("../../tests/fixtures/mermaid_diagram.md");
     let result = converter.convert(md).await;
@@ -195,7 +209,7 @@ async fn test_placeholder_replaced_with_ac_image() {
         eprintln!("Skipping: plantuml not installed");
         return;
     }
-    let config = crate::config::DiagramConfig::default();
+    let config = test_diagram_config();
     let converter = MarkdownConverter::new(config);
     let md = include_str!("../../tests/fixtures/plantuml_diagram.md");
     let result = converter.convert(md).await.unwrap();

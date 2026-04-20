@@ -44,12 +44,6 @@ impl MarkdownConverter {
     }
 }
 
-impl Default for MarkdownConverter {
-    fn default() -> Self {
-        Self::new(DiagramConfig::default())
-    }
-}
-
 #[async_trait]
 impl Converter for MarkdownConverter {
     async fn convert(&self, markdown: &str) -> Result<ConvertResult, ConversionError> {
