@@ -25,7 +25,8 @@ This tool solves both:
 - **PlantUML** (optional): `plantuml` CLI on `$PATH`, or a path to `plantuml.jar`
 - **mermaid-cli** (optional): `mmdc` on `$PATH` — `npm install -g @mermaid-js/mermaid-cli`
 - **Confluence Cloud**: an instance with API token credentials
-- **Anthropic API key**: required only for the `update` command's LLM merge
+- **Anthropic API key**: required only for the `update` command's LLM merge — run
+  `claude setup-token` if you have Claude installed but no API key yet
 
 ## Installation
 
