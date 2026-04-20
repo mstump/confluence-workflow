@@ -48,12 +48,17 @@ pub struct AnthropicClient {
 
 impl AnthropicClient {
     /// Create a new client pointing at the production Anthropic API.
+    ///
+    /// Honours the `ANTHROPIC_BASE_URL` env var (test-infrastructure affordance,
+    /// D-03) when set to a non-empty value; otherwise falls back to the production
+    /// URL. `with_endpoint` (below) remains the direct seam for unit tests that
+    /// prefer not to mutate process env.
     pub fn new(api_key: String, model: String) -> Self {
-        Self::with_endpoint(
-            api_key,
-            model,
-            "https://api.anthropic.com/v1/messages".to_string(),
-        )
+        let endpoint = std::env::var("ANTHROPIC_BASE_URL")
+            .ok()
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "https://api.anthropic.com/v1/messages".to_string());
+        Self::with_endpoint(api_key, model, endpoint)
     }
 
     /// Create a new client with a custom endpoint (for testing with wiremock).

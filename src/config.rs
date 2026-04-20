@@ -85,10 +85,16 @@ impl Config {
 
         // Threat model T-01-04: validate scheme to prevent accidental HTTP use.
         // Use to_ascii_lowercase() so mixed-case inputs like "HTTPS://" are accepted.
-        if !confluence_url.to_ascii_lowercase().starts_with("https://") {
+        // D-01: narrowly exempt http://localhost and http://127.0.0.1 for integration
+        // testing (wiremock binds to loopback); external hosts remain rejected.
+        let url_lower = confluence_url.to_ascii_lowercase();
+        if !url_lower.starts_with("https://")
+            && !url_lower.starts_with("http://localhost")
+            && !url_lower.starts_with("http://127.0.0.1")
+        {
             return Err(ConfigError::Invalid {
                 name: "CONFLUENCE_URL",
-                reason: "must start with https://",
+                reason: "must start with https:// (or http://localhost for testing)",
             });
         }
 
