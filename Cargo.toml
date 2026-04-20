@@ -17,7 +17,7 @@ path = "src/main.rs"
 
 [dependencies]
 tokio = { version = "1.51", features = ["rt-multi-thread", "macros", "process", "time", "sync"] }
-rand = "0.9"
+rand = "=0.9.3"
 reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "rustls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
