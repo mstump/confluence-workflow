@@ -118,19 +118,26 @@ pub async fn render_mermaid(
     cmd.stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
 
-    let output = tokio::time::timeout(
+    let timeout_result = tokio::time::timeout(
         Duration::from_secs(config.timeout_secs),
         cmd.output(),
     )
-    .await
-    .map_err(|_| ConversionError::DiagramTimeout {
-        diagram_type: "mermaid".to_string(),
-        timeout_secs: config.timeout_secs,
-    })?
-    .map_err(|e| ConversionError::DiagramError {
-        diagram_type: "mermaid".to_string(),
-        message: format!("Mermaid process failed: {e}"),
-    })?;
+    .await;
+
+    let output = match timeout_result {
+        Err(_) => {
+            // Timeout — attempt best-effort cleanup of any partial output file
+            let _ = std::fs::remove_file(&output_path);
+            return Err(ConversionError::DiagramTimeout {
+                diagram_type: "mermaid".to_string(),
+                timeout_secs: config.timeout_secs,
+            });
+        }
+        Ok(res) => res.map_err(|e| ConversionError::DiagramError {
+            diagram_type: "mermaid".to_string(),
+            message: format!("Mermaid process failed: {e}"),
+        })?,
+    };
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
