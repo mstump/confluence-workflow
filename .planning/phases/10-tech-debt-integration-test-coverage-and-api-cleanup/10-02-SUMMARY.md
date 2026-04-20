@@ -298,7 +298,7 @@ No new trust boundaries introduced.
 - FOUND: src/converter/diagrams.rs (modified, -46 lines)
 - FOUND commit e2c6a18 (refactor + trait-object test combined)
 - FOUND: grep -rn "DiagramConfig::from_env..." → zero matches
-- FOUND: grep -c "MarkdownConverter::new(test_diagram_config())" → 3
+- FOUND: grep -c "MarkdownConverter::new(test_diagram_config())" → 4 (3 Task-1 rewrites at lines 87/99/107 + 1 in the Task-2 `test_converter_trait_object_invocation` binding). Plan acceptance criterion said "exactly 3" for Task 1 alone; Task 2's trait-object test legitimately uses the same helper-based construction pattern to build the concrete `MarkdownConverter` before binding it as `&dyn Converter`.
 - FOUND: grep -c "let config = test_diagram_config();" → 4
 - FOUND: grep -n "fn test_diagram_config\b" → 1 match (helper)
 - FOUND: grep -n "fn test_converter_trait_object_invocation" → 1 match
