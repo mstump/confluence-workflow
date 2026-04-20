@@ -9,7 +9,7 @@ pub mod merge;
 use std::sync::Arc;
 
 use cli::{Cli, Commands};
-use config::{CliOverrides, Config, DiagramConfig};
+use config::{Config, DiagramConfig};
 use confluence::client::update_page_with_retry;
 use confluence::{extract_page_id, ConfluenceApi, ConfluenceClient};
 use converter::{Converter, MarkdownConverter};
@@ -76,20 +76,20 @@ pub fn error_to_json(error: &AppError) -> serde_json::Value {
 }
 
 pub async fn run(cli: Cli) -> Result<CommandResult, AppError> {
-    match cli.command {
+    // Borrow `&cli.command` and clone arm-bound fields so `cli` itself remains
+    // unmoved and can be passed as `&cli` to `Config::load`. Clap-derive already
+    // resolved env vars onto cli.* at parse time (main.rs hoisted dotenvy::dotenv
+    // so .env is visible), so we read cli fields directly without any second
+    // env-var tier.
+    match &cli.command {
         Commands::Update {
             markdown_path,
             page_url,
         } => {
-            let overrides = CliOverrides {
-                confluence_url: cli.confluence_url,
-                confluence_username: cli.confluence_username,
-                confluence_api_token: cli.confluence_token,
-                anthropic_api_key: cli.anthropic_api_key.clone(),
-                plantuml_path: cli.plantuml_path.clone(),
-                mermaid_path: cli.mermaid_path.clone(),
-            };
-            let config = Config::load(&overrides)?;
+            let markdown_path = markdown_path.clone();
+            let page_url = page_url.clone();
+
+            let config = Config::load(&cli)?;
 
             // Validate API key is present for update (requires LLM)
             let api_key = config.anthropic_api_key.clone().ok_or_else(|| {
@@ -161,15 +161,10 @@ pub async fn run(cli: Cli) -> Result<CommandResult, AppError> {
             markdown_path,
             page_url,
         } => {
-            let overrides = CliOverrides {
-                confluence_url: cli.confluence_url,
-                confluence_username: cli.confluence_username,
-                confluence_api_token: cli.confluence_token,
-                anthropic_api_key: cli.anthropic_api_key,
-                plantuml_path: cli.plantuml_path.clone(),
-                mermaid_path: cli.mermaid_path.clone(),
-            };
-            let config = Config::load(&overrides)?;
+            let markdown_path = markdown_path.clone();
+            let page_url = page_url.clone();
+
+            let config = Config::load(&cli)?;
 
             // 1. Convert markdown to storage XML
             let markdown = std::fs::read_to_string(&markdown_path).map_err(AppError::Io)?;
@@ -208,15 +203,19 @@ pub async fn run(cli: Cli) -> Result<CommandResult, AppError> {
             markdown_path,
             output_dir,
         } => {
-            // No Config::load() needed -- convert does not require Confluence credentials
+            let markdown_path = markdown_path.clone();
+            let output_dir = output_dir.clone();
+
+            // Convert does not require Confluence credentials, so Config::load is skipped.
+            // cli.plantuml_path / cli.mermaid_path are already resolved by clap-derive's
+            // #[arg(env = "...")] attribute — no second env-var read is needed.
+            // dotenvy::dotenv() was hoisted to main.rs in Phase 09, so .env values are
+            // visible to clap at Cli::parse() time.
             let markdown = std::fs::read_to_string(&markdown_path).map_err(AppError::Io)?;
-            dotenvy::dotenv().ok();
             let diagram_config = DiagramConfig {
-                plantuml_path: cli.plantuml_path
-                    .or_else(|| std::env::var("PLANTUML_PATH").ok())
+                plantuml_path: cli.plantuml_path.clone()
                     .unwrap_or_else(|| "plantuml".to_string()),
-                mermaid_path: cli.mermaid_path
-                    .or_else(|| std::env::var("MERMAID_PATH").ok())
+                mermaid_path: cli.mermaid_path.clone()
                     .unwrap_or_else(|| "mmdc".to_string()),
                 mermaid_puppeteer_config: std::env::var("MERMAID_PUPPETEER_CONFIG").ok(),
                 timeout_secs: std::env::var("DIAGRAM_TIMEOUT")
