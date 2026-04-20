@@ -87,3 +87,5 @@ Updated Confluence page
 - Pin all dependency versions in `Cargo.toml` (e.g., `package = "=1.2.3"`)
 - Do not add `impl Default` to `DiagramConfig` or `MarkdownConverter` — explicit construction
   is required to keep the config waterfall honest
+- Keep `README.md` in sync with any changes to CLI flags, env vars, config behavior, commands,
+  or prerequisites — update it in the same commit as the code change
