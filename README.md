@@ -38,11 +38,12 @@ cargo build --release
 
 ## Configuration
 
-Credentials are resolved in this order for each value (first non-empty wins):
+Auth credentials (`CONFLUENCE_URL`, `CONFLUENCE_USERNAME`, `CONFLUENCE_API_TOKEN`,
+`ANTHROPIC_API_KEY`) are resolved in this order (first non-empty wins):
 
 1. CLI flag
 2. Environment variable
-3. `~/.claude/settings.json` (top-level key matching the env var name)
+3. `~/.claude/settings.json` (top-level key matching the env var name — session auth only)
 
 | CLI flag | Env var | Required | Description |
 | --- | --- | --- | --- |
