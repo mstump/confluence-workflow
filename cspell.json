@@ -1,0 +1,20 @@
+{
+  "version": "0.2",
+  "words": [
+    "atlassian",
+    "confluence",
+    "mmdc",
+    "mermaid",
+    "plantuml",
+    "rustup",
+    "tokio",
+    "reqwest",
+    "serde",
+    "clap",
+    "thiserror",
+    "wiremock",
+    "insta",
+    "dotenvy",
+    "pulldown"
+  ]
+}

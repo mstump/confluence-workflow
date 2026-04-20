@@ -1,181 +1,124 @@
-# Confluence Agent Workflow
+# Confluence Agent
 
-An intelligent agentic workflow that converts local Markdown files into Confluence pages. It leverages Large Language Models (LLMs) to intelligently merge content, preserving existing page context like inline comments and macros, while automatically handling diagrams.
-
-This project uses [mcp-agent](https://pypi.org/project/mcp-agent/) to expose this workflow as a Model Context Protocol (MCP) server.
+A Rust CLI that converts Markdown files into Confluence pages. It uses a multi-step LLM pipeline
+(Merge → Reflect → Critic) to intelligently merge new content with an existing page, preserving
+inline comments and rendering diagrams (PlantUML, Mermaid).
 
 ## Motivation
 
-I write Confluence pages in markdown, typically using Cursor as my editor, and then publish to Confluence. When publishing I routinely ran into two problems:
+I write Confluence pages in Markdown (typically in Cursor) and publish to Confluence. Two problems
+kept coming up:
 
-- My diagrams didn't render correctly. I had to manually re-add diagram macros after publishing.
-- Every time I published, I lost the location context of inline comments.
+- Diagrams didn't render — I had to manually re-add diagram macros after every publish.
+- Every publish wiped out the location context of inline comments.
 
-This workflow solves both of these issues:
+This tool solves both:
 
-- It renders diagrams as SVGs and inserts an inline image above the associated code block. When publishing, the SVG files are uploaded as attachments.
-- It uses an LLM to get the existing page state and merge in any comment location markup so that when publishing, comments are retained.
-
-## Key Features
-
-- **Intelligent Merging**: Uses a multi-step LLM process (Merge -> Reflect -> Critic) to update pages without overwriting existing context.
-- **Comment Preservation**: Retains the location context of inline comments on Confluence pages, solving a common pain point when publishing from Markdown.
-- **Diagram Support**: Automatically renders [PlantUML](https://plantuml.com/) and [Mermaid](https://mermaid.js.org/) diagrams as SVGs and uploads them as attachments.
-- **Obsidian Support**: Automatically strips YAML frontmatter from Obsidian notes before conversion.
-- **Markdown Compatibility**: Built on [markdown-to-confluence](https://pypi.org/project/markdown-to-confluence/) for robust conversion to Confluence Storage Format.
+- PlantUML and Mermaid blocks are rendered to SVG, uploaded as attachments, and inserted as
+  inline images above their source blocks.
+- An LLM fetches the existing page state and re-injects `<ac:inline-comment-marker>` elements so
+  comments survive every publish.
 
 ## Prerequisites
 
-- **Python 3.10+**
-- **Java**: Runtime environment (JRE) is required for PlantUML.
-- **PlantUML**: `plantuml.jar` must be available (default expectation is `plantuml.jar` in the project root or configurable via `.env`).
-- **Node.js & mermaid-cli**: Required for Mermaid diagram rendering. Install with `npm install -g @mermaid-js/mermaid-cli`.
-- **uv**: Recommended for dependency management (or standard pip/venv).
-- **Confluence Cloud**: Access to an instance with API token credentials.
-- **LLM API Key**: Access to an LLM provider (OpenAI or Google).
+- **Rust** (1.80+): [rustup.rs](https://rustup.rs)
+- **PlantUML** (optional): `plantuml` CLI on `$PATH`, or a path to `plantuml.jar`
+- **mermaid-cli** (optional): `mmdc` on `$PATH` — `npm install -g @mermaid-js/mermaid-cli`
+- **Confluence Cloud**: an instance with API token credentials
+- **Anthropic API key**: required only for the `update` command's LLM merge
 
 ## Installation
 
-1. **Clone the repository:**
+```bash
+git clone https://github.com/mstump/confluence-workflow
+cd confluence-workflow
+cargo build --release
+# Binary is at target/release/confluence-agent
+```
 
-    ```bash
-    git clone https://github.com/mstump/confluence-workflow
-    cd confluence-workflow
-    ```
+## Configuration
 
-2. **Set up the environment:**
+Credentials are resolved in this order for each value (first non-empty wins):
 
-    Using `uv` (recommended):
+1. CLI flag
+2. Environment variable
+3. `~/.claude/settings.json` (top-level key matching the env var name)
 
-    ```bash
-    uv venv
-    source .venv/bin/activate
-    uv pip install -e '.[dev]'
-    ```
+| CLI flag | Env var | Required | Description |
+| --- | --- | --- | --- |
+| `--confluence-url` | `CONFLUENCE_URL` | Yes | Base URL, e.g. `https://your-domain.atlassian.net` |
+| `--confluence-username` | `CONFLUENCE_USERNAME` | Yes | Email address |
+| `--confluence-api-token` | `CONFLUENCE_API_TOKEN` | Yes | Atlassian API token |
+| `--anthropic-api-key` | `ANTHROPIC_API_KEY` | `update` only | Anthropic API key |
+| `--plantuml-path` | `PLANTUML_PATH` | No | Path to plantuml (default: `plantuml`) |
+| `--mermaid-path` | `MERMAID_PATH` | No | Path to mmdc (default: `mmdc`) |
 
-3. **Configure Credentials:**
+Additional env vars (no CLI flag):
 
-    Copy the example environment file and add your API keys:
+| Env var | Default | Description |
+| --- | --- | --- |
+| `ANTHROPIC_MODEL` | `claude-haiku-4-5-20251001` | Model used for the LLM pipeline |
+| `ANTHROPIC_CONCURRENCY` | `5` | Max concurrent LLM requests |
+| `MERMAID_PUPPETEER_CONFIG` | — | Path to puppeteer config file for mmdc |
+| `DIAGRAM_TIMEOUT` | `30` | Seconds before a diagram render subprocess is killed |
 
-    ```bash
-    cp .env.example .env
-    ```
+The simplest setup is a `.env` file in the working directory (loaded automatically):
 
-    Edit `.env` with your details:
-    - `CONFLUENCE_URL` (e.g., `https://your-domain.atlassian.net/wiki`)
-    - `CONFLUENCE_USERNAME` (Email address)
-    - `CONFLUENCE_API_TOKEN` (Create one at Atlassian Account Settings)
-    - `OPENAI_API_KEY` (or Google equivalent)
-
-### Verified LLM Providers
-
-This workflow is verified with:
-
-- **OpenAI**: `gpt-5` (Configured as default)
-- **Google**: `gemini-2.5-pro`
-
-*Note: When using Google's models, `gemini-2.5-flash-lite` produced unsatisfactory results.*
+```env
+CONFLUENCE_URL=https://your-domain.atlassian.net
+CONFLUENCE_USERNAME=you@example.com
+CONFLUENCE_API_TOKEN=your-token
+ANTHROPIC_API_KEY=sk-ant-...
+```
 
 ## Usage
 
-The tool can be used via the Command-Line Interface (CLI) or as an MCP Server.
+### `update` — merge with LLM (recommended)
 
-### CLI Commands
-
-For development, it is recommended to run commands using `python -m` to ensure the local source is used.
-
-First, export the necessary variables:
+Fetches the existing page, runs the Merge → Reflect → Critic pipeline to merge your Markdown into
+it, preserves inline comments, and publishes the result.
 
 ```bash
-export LOG_LEVEL='INFO'
-export PYTHONPATH=./src
+confluence-agent update doc.md 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Title'
 ```
 
-#### 1. Update a Page (Recommended)
+### `upload` — direct overwrite
 
-Updates a Confluence page using the intelligent LLM merge agent. This preserves comments and handles conflicts.
+Converts and uploads without any LLM merge. Useful for initial page creation or when you don't
+care about preserving existing content or comments.
 
 ```bash
-uv run python -m confluence_agent.cli update 'path/to/document.md' 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Title'
+confluence-agent upload doc.md 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Title'
 ```
 
-**Options:**
+### `convert` — local conversion only
 
-- `--provider` / `-p`: Override the LLM provider (e.g., `-p google`).
-
-#### 2. Upload (Direct)
-
-Converts and uploads the file, **overwriting** existing content (no LLM merge). Use this for initial page creation or when context preservation isn't needed.
+Converts Markdown to Confluence Storage Format XML and writes the output locally. No network
+requests; useful for debugging the conversion step.
 
 ```bash
-uv run python -m confluence_agent.cli upload 'path/to/document.md' 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Title'
+confluence-agent convert doc.md ./output-dir
 ```
 
-#### 3. Convert Only
+### Global flags
 
-Converts Markdown to Confluence Storage Format locally for inspection.
-
-```bash
-uv run python -m confluence_agent.cli convert 'path/to/document.md' './output_dir'
-```
-
-### MCP Server
-
-Run the agent as an MCP server to integrate with AI coding assistants (like Cursor) or other MCP clients.
-
-```bash
-uvx mcp-agent serve confluence_agent
-```
-
-The server will run on `localhost:8000` (default).
-
-**Available Tool:** `update_confluence_page`
-
-- **Inputs**:
-  - `markdown_content` (string): The new content.
-  - `page_url` (string): Target Confluence page.
-  - `provider` (string): `openai` or `google`.
-
-## Docker Support
-
-A Docker image is available containing all dependencies (Python, Java, PlantUML, mermaid-cli).
-
-- **Registry**: [ghcr.io/mstump/confluence-workflow](https://github.com/users/mstump/packages/container/package/confluence-workflow)
-- **Build**: `docker build -t confluence-agent .`
-
-### Run with Docker
-
-Mount your local documents directory to `/app` in the container:
-
-```bash
-docker run --rm -it \
-  --env-file .env \
-  -v "$(pwd)/docs:/app/docs" \
-  ghcr.io/mstump/confluence-workflow:latest \
-  update /app/docs/page.md 'https://your-domain.atlassian.net/wiki/...'
-```
+| Flag | Description |
+| --- | --- |
+| `--verbose` / `-v` | Enable debug logging |
+| `--output human\|json` | Output format (default: `human`) |
 
 ## Development
 
-### Linting & Formatting
-
-This project uses `pre-commit` to enforce code style.
-
 ```bash
-pre-commit install
-pre-commit run --all-files
-```
+# Build
+cargo build
 
-### Running Tests
+# Run all tests
+cargo test
 
-```bash
-uv run pytest
-```
+# Run integration tests only
+cargo test --test cli_integration
 
-### Re-installing CLI
-
-If modifying `src/confluence_agent/cli.py`, re-install the package to update the `confluence-agent` entrypoint:
-
-```bash
-uv pip uninstall confluence-agent && uv pip install -e '.[dev]'
+# Lint markdown
+markdownlint --fix .
 ```
