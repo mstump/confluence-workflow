@@ -114,9 +114,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: Cargo packaging -- Cargo.toml metadata for crates.io, release profile (LTO, strip, panic=abort), verify cargo install works
-- [ ] 05-02: Claude Code skills -- confluence-update.md and confluence-upload.md skill definitions that invoke the binary with --output json
-- [ ] 05-03: CI/CD -- GitHub Actions workflow for cross-platform builds (cargo-zigbuild or cross), release artifact upload on tag
+- [ ] 05-01-PLAN.md -- Cargo packaging: license decision, Cargo.toml crates.io metadata, LICENSE file, verify cargo install --path . works and binary under 15 MB
+- [ ] 05-02-PLAN.md -- Claude Code skills: confluence-update and confluence-upload SKILL.md files in new .claude/skills/ format with --output json
+- [ ] 05-03-PLAN.md -- CI/CD: GitHub Actions release.yml with cross-platform matrix (houseabsolute/actions-rust-cross), release artifact upload on v* tags
 
 ### Phase 6: Credential Waterfall Fix
 **Goal**: The `--anthropic-api-key` CLI flag is wired end-to-end so the CLI tier of the credential waterfall (CLI > env > .env > ~/.claude/) is functional for the Anthropic API key, satisfying SCAF-02 and SCAF-03
