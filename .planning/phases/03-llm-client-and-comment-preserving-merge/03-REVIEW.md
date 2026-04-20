@@ -180,6 +180,7 @@ Err(join_err) => {
 **Issue:** `std::fs::read_to_string(&markdown_path)` is called directly on the async executor thread. For typical markdown file sizes this is inconsequential, but it is a pattern that should be replaced with `tokio::fs::read_to_string` for consistency with the async runtime.
 
 **Fix:**
+
 ```rust
 let markdown = tokio::fs::read_to_string(&markdown_path)
     .await
@@ -194,6 +195,7 @@ let markdown = tokio::fs::read_to_string(&markdown_path)
 **Issue:** `sem.acquire().await.unwrap()` — `Semaphore::acquire` returns `Err` only if the semaphore has been closed. The semaphore is locally owned and never explicitly closed, so this is safe. However, `.unwrap()` inside a `tokio::spawn` closure causes the task to panic, which would then propagate as a `JoinError` (triggering IN-03 above).
 
 **Fix:** Use `expect` with a message, or map the error:
+
 ```rust
 let _permit = sem.acquire().await.expect("semaphore closed unexpectedly");
 ```
@@ -224,6 +226,7 @@ let _permit = sem.acquire().await.expect("semaphore closed unexpectedly");
 **Issue:** The compile-time source scan checks only `tracing::info!` and `tracing::debug!` for references to `api_key`. It does not check `tracing::warn!` or `tracing::error!`. Currently no `warn!`/`error!` calls reference `api_key`, so there is no actual leakage, but the test gives false assurance for those levels.
 
 **Fix:** Expand the check to all tracing levels:
+
 ```rust
 if line.contains("api_key")
     && (line.contains("tracing::info!")
@@ -243,6 +246,7 @@ if line.contains("api_key")
 **Issue:** When a `retry-after` header is present, the delay is taken directly from the header value (in seconds, converted to ms) with jitter applied but no upper-bound cap. A server could return `retry-after: 86400` (one day), causing the client to sleep indefinitely. The exponential backoff path correctly caps at `MAX_BACKOFF_MS` (32 seconds), but the `retry-after` path bypasses this cap.
 
 **Fix:** Apply the cap after computing `delay_ms`:
+
 ```rust
 let delay_ms = if let Some(retry_secs) = retry_after {
     ((retry_secs * 1000.0) as u64).min(MAX_BACKOFF_MS)
@@ -253,6 +257,6 @@ let delay_ms = if let Some(retry_secs) = retry_after {
 
 ---
 
-_Reviewed: 2026-04-11T00:00:00Z_
-_Reviewer: Claude (gsd-code-reviewer)_
-_Depth: standard_
+*Reviewed: 2026-04-11T00:00:00Z*
+*Reviewer: Claude (gsd-code-reviewer)*
+*Depth: standard*

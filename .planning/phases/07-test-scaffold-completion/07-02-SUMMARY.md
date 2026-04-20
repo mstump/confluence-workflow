@@ -36,8 +36,9 @@ Fixed config test race condition with serial_test crate and removed unused anyho
 ### Auto-fixed Issues
 
 **1. [Rule 1 - Bug] Additional tests needed #[serial] annotation**
+
 - **Found during:** Task 2
-- **Issue:** Plan specified only 2 tests (test_fallthrough_to_env_vars, test_env_vars_used_when_cli_absent) for #[serial] annotation, but 5 additional tests also call std::env::set_var/remove_var on CONFLUENCE_* and ANTHROPIC_* environment variables. Without #[serial], test_missing_confluence_api_token_error failed because it observed leaked env vars from a concurrent test.
+- **Issue:** Plan specified only 2 tests (test_fallthrough_to_env_vars, test_env_vars_used_when_cli_absent) for #[serial] annotation, but 5 additional tests also call std::env::set_var/remove_var on CONFLUENCE_*and ANTHROPIC_* environment variables. Without #[serial], test_missing_confluence_api_token_error failed because it observed leaked env vars from a concurrent test.
 - **Fix:** Added #[serial] to all 7 tests that mutate environment variables: tests 2, 3, 4, 5, 6, 7, and 8. Tests 1, 9, and 10 do not mutate env vars and remain parallel.
 - **Files modified:** src/config.rs
 - **Commit:** 4ce2b4c

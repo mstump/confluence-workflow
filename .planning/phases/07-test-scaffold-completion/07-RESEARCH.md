@@ -29,6 +29,7 @@ The test files themselves are already complete and fully passing. Plan 07-01 as 
 **Status: COMPLETE — all tests passing**
 
 Functions present:
+
 - `test_convert_command` — full implementation, passes (CLI-03)
 - `test_convert_command_missing_file` — full implementation, passes (error path)
 - `test_json_output_mode` — full implementation, passes (CLI-05)
@@ -39,6 +40,7 @@ Functions present:
 - `test_upload_command_happy_path` — `#[ignore]` with rationale: wiremock is http-only, Config enforces https://; cannot automate this path
 
 Coverage summary:
+
 - CLI-01: error path tested (`test_update_command_missing_api_key`)
 - CLI-02: error paths tested (missing credentials + http:// rejection)
 - CLI-03: full happy path + error path tested
@@ -49,6 +51,7 @@ Coverage summary:
 **Status: COMPLETE — all tests passing**
 
 Functions present:
+
 - `test_stderr_routing` — full implementation with --verbose, passes (CLI-04)
 - `test_default_silent_mode` — full implementation without --verbose, passes (CLI-04)
 
@@ -79,12 +82,14 @@ The integration test stubs from the roadmap success criteria are fully implement
 All integration test dependencies (`assert_cmd`, `wiremock`, `insta`, `tempfile`) are already in `[dev-dependencies]`. The only change is adding `serial_test` to `[dev-dependencies]`.
 
 **Version verification:**
+
 ```bash
 # Run before writing plan:
 cargo search serial_test  # → serial_test = "3.4.0"
 ```
 
 **Installation:**
+
 ```toml
 [dev-dependencies]
 serial_test = "3.4.0"
@@ -126,6 +131,7 @@ The two failing tests are:
 Both use the same three env var names. Under parallel execution, test A can set `CONFLUENCE_URL` while test B reads it (or has already removed it), causing the set_var in one test to be visible in another test's env-var lookup window.
 
 Tests that only READ env vars (or use `no_home()` + CLI overrides exclusively) do not need `#[serial]`. Of the 10 config tests:
+
 - 8 tests use CLI overrides exclusively — NOT affected by the race
 - 2 tests call `std::env::set_var` — NEED `#[serial]`
 
@@ -162,24 +168,28 @@ After deletion, run `cargo build` to confirm zero errors. The `anyhow` crate has
 ## Common Pitfalls
 
 ### Pitfall 1: Scope of the `#[serial]` attribute
+
 **What goes wrong:** Annotating only one of the two conflicting tests — the other still runs in parallel and the race persists.
 **Why it happens:** The conflict is symmetric: either test running first can cause the other to fail.
 **How to avoid:** Both `test_fallthrough_to_env_vars` AND `test_env_vars_used_when_cli_absent` must have `#[serial]`.
 **Warning signs:** After annotation, `cargo test` still fails intermittently — one test was missed.
 
 ### Pitfall 2: serial_test version mismatch
+
 **What goes wrong:** Using `serial_test = "2.x"` syntax for `"3.x"` features or vice versa.
 **Why it happens:** serial_test had a significant API change between v2 and v3.
 **How to avoid:** Use `serial_test = "3.4.0"` (exact, pinned as per CLAUDE.md dependency pinning requirement). The `#[serial]` attribute exists in both v2 and v3; the import is `use serial_test::serial;`.
 **Warning signs:** Compile error mentioning `serial` not found in `serial_test`.
 
 ### Pitfall 3: anyhow removal breaks something unexpected
+
 **What goes wrong:** Removing `anyhow` from Cargo.toml causes a compile error because it appears as a transitive re-export.
 **Why it happens:** Rarely — this typically only happens if `main.rs` uses `anyhow::Result` directly.
 **How to avoid:** Read `src/main.rs` first (already done — uses no `anyhow`). After removing the line, run `cargo build` immediately to verify.
 **Warning signs:** `cargo build` fails with `cannot find crate 'anyhow'` or `use of undeclared crate or module 'anyhow'`.
 
 ### Pitfall 4: Roadmap plan 07-01 describes work Phase 6 already completed
+
 **What goes wrong:** Plan 07-01 is executed as if tests/cli_integration.rs and tests/output_format.rs are missing stubs that need to be "fleshed out" — but both files now contain full, passing implementations.
 **Why it happens:** The roadmap was written before Phase 6 executed; Phase 6 over-delivered on what the roadmap expected of Phase 7.
 **How to avoid:** Plan 07-01 should be a verification task (confirm tests pass, document the state) rather than an implementation task.
@@ -242,6 +252,7 @@ anyhow = "1"
 | `anyhow` dependency declared but unused | Removed from Cargo.toml | Cleaner dependency tree; no behavior change |
 
 **Deprecated/outdated:**
+
 - `serial_test` v2.x syntax: v3 changed the macro system; use v3 (`serial_test = "3.4.0"`), import as `use serial_test::serial;`
 
 ## Assumptions Log
@@ -308,6 +319,7 @@ This phase makes two mechanical changes (add `#[serial]` to two test functions, 
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - `tests/cli_integration.rs` — read directly; all 7/8 tests confirmed present and passing [VERIFIED: file read + cargo test run]
 - `tests/output_format.rs` — read directly; both tests confirmed present and passing [VERIFIED: file read + cargo test run]
 - `src/config.rs` — read directly; identified exactly 2 tests calling set_var for CONFLUENCE_* keys [VERIFIED: file read]
@@ -318,14 +330,17 @@ This phase makes two mechanical changes (add `#[serial]` to two test functions, 
 - `.planning/v1.0-MILESTONE-AUDIT.md` — audit confirms Phase 6 delivered test implementations [VERIFIED: file read]
 
 ### Secondary (MEDIUM confidence)
+
 - `cargo search serial_test` — `serial_test = "3.4.0"` is current version [VERIFIED: cargo search output]
 
 ### Tertiary (LOW confidence)
+
 - serial_test v3 API (`use serial_test::serial; #[serial]`) — based on training knowledge of well-established crate; not verified against live docs in this session [ASSUMED]
 
 ## Metadata
 
 **Confidence breakdown:**
+
 - Test file state: HIGH — files read directly, tests run live
 - Config race condition: HIGH — root cause confirmed by running tests in parallel vs. sequential
 - `anyhow` removal: HIGH — confirmed zero uses in src/ via grep
@@ -335,6 +350,7 @@ This phase makes two mechanical changes (add `#[serial]` to two test functions, 
 **Valid until:** 2026-05-13 (Rust codebase; stable dependencies)
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |

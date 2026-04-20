@@ -43,6 +43,7 @@ Five warnings and two informational items were identified. The most actionable i
 **File:** `src/confluence/client.rs:27-30`
 **Issue:** `reqwest::Client::builder().build().expect("Failed to build reqwest client")` panics if the underlying TLS backend fails to initialize. For a library function called from application code, a panic is never recoverable — callers cannot handle it as an error. The `build()` method returns `Result<Client, reqwest::Error>`, which should be propagated.
 **Fix:** Change the signature of `new` to return `Result<Self, ConfluenceError>` and propagate the error:
+
 ```rust
 pub fn new(base_url: &str, username: &str, api_token: &str) -> Result<Self, ConfluenceError> {
     let client = reqwest::Client::builder()
@@ -52,6 +53,7 @@ pub fn new(base_url: &str, username: &str, api_token: &str) -> Result<Self, Conf
     Ok(Self { client, base_url: ..., auth_header })
 }
 ```
+
 The call site in `src/lib.rs` would then use `?` on `ConfluenceClient::new(...)`.
 
 ---
@@ -60,18 +62,23 @@ The call site in `src/lib.rs` would then use `?` on `ConfluenceClient::new(...)`
 
 **File:** `src/config.rs:50-53`
 **Issue:** When the URL does not start with `https://`, the code returns:
+
 ```rust
 Err(ConfigError::Missing {
     name: "CONFLUENCE_URL (must start with https://)",
 })
 ```
+
 This misuses the `Missing` variant (which signals an absent value) to convey a validation failure. The error message produced by `thiserror` will read "Missing required configuration: CONFLUENCE_URL (must start with https://). Set via CLI flag, environment variable, or .env file" — confusing for a URL that was actually provided but has the wrong scheme. It also means callers cannot distinguish "missing" from "invalid scheme" by matching on the error variant.
 **Fix:** Add a dedicated `ConfigError::InvalidUrl` variant:
+
 ```rust
 #[error("Invalid CONFLUENCE_URL: must use https:// scheme (got: {url})")]
 InvalidUrl { url: String },
 ```
+
 And return it:
+
 ```rust
 return Err(ConfigError::InvalidUrl { url: confluence_url });
 ```
@@ -83,6 +90,7 @@ return Err(ConfigError::InvalidUrl { url: confluence_url });
 **File:** `src/config.rs:206-247` (tests `test_fallthrough_to_env_vars` and `test_env_vars_used_when_cli_absent`)
 **Issue:** Both tests set and remove the same environment variables (`CONFLUENCE_URL`, `CONFLUENCE_USERNAME`, `CONFLUENCE_API_TOKEN`) without any synchronization. Rust's default test runner executes tests in parallel threads, so two tests modifying the same env vars concurrently will cause intermittent failures. The pattern is present in at least `test_fallthrough_to_env_vars` (line 209-211) and `test_env_vars_used_when_cli_absent` (line 232-234), plus the missing-field tests.
 **Fix:** Either run config tests with `#[serial_test::serial]` (add `serial_test` as a dev-dependency) or use unique, test-scoped env var names. The cleanest approach for the existing `load_with_home` design is to pass values through `CliOverrides` instead of using env vars in tests:
+
 ```rust
 // Prefer testing via CliOverrides so tests are isolated and parallelism-safe
 let overrides = CliOverrides {
@@ -98,11 +106,13 @@ let overrides = CliOverrides {
 **File:** `src/lib.rs:34-38`
 **Issue:** The `Upload` command reads the Markdown file and passes it directly to `update_page_with_retry` as the `content` argument, which the Confluence API expects to be valid Confluence storage XML. This will store unprocessed Markdown text in the `body.storage.value` field and likely corrupt or break the page rendering in Confluence. The comment acknowledges this is a Phase 1 placeholder, but this is a correctness issue if the binary is invoked against a real Confluence instance.
 **Fix:** Either gate the `Upload` command with a clear user-visible warning, or add a compile-time note ensuring it cannot be used until the converter is wired in:
+
 ```rust
 // Temporary: print a clear warning so users know this is not production-ready
 eprintln!("WARNING: upload command uploads raw Markdown as storage XML. \
            Converter not yet implemented. This will corrupt page formatting.");
 ```
+
 Or leave the command as returning a `not yet implemented` message (same as `Update` and `Convert`) until Phase 2 is complete.
 
 ---
@@ -112,6 +122,7 @@ Or leave the command as returning a `not yet implemented` message (same as `Upda
 **File:** `src/confluence/url.rs:14`
 **Issue:** The `/pages/(\d+)` regex has no word boundary or end-of-segment anchor after the capture group. A URL like `/wiki/spaces/SPACE/pages/123abc/Title` would match and return `"123"` as the page ID, silently producing a wrong ID rather than an `InvalidPageUrl` error. While Confluence page IDs are all-numeric in practice, accepting a partial numeric prefix from an invalid-format URL is a latent correctness bug.
 **Fix:** Anchor the capture group to a non-digit boundary:
+
 ```rust
 Regex::new(r"/pages/(\d+)(?:[^0-9]|$)").unwrap()
 // or use a word boundary:

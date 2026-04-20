@@ -7,3 +7,5 @@ MD013: false
 # MD041/first-line-heading - First line should be a heading
 # Disabled for SKILL.md files that use YAML frontmatter (---)
 MD041: false
+
+MD060: false

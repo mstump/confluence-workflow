@@ -7,6 +7,7 @@
 ## Phase Boundary
 
 Two targeted fixes:
+
 1. Close the SCAF-03 integration gap: fix the `convert` arm's `DiagramConfig` construction by leveraging clap-derive's existing env-var resolution and refactoring `Config` to be built directly from `Cli` fields, removing the `CliOverrides` indirection layer.
 2. Produce a Phase 08 `VERIFICATION.md` via goal-backward analysis of Phase 08's success criteria against the current codebase.
 
@@ -42,42 +43,51 @@ This phase does NOT add new capabilities.
 </decisions>
 
 <canonical_refs>
+
 ## Canonical References
 
 **Downstream agents MUST read these before planning or implementing.**
 
 ### Source Files (Phase 9 scope)
+
 - `src/cli.rs` — existing `Cli` struct with clap-derive (already uses `#[arg(long, env = "...")]`)
 - `src/config.rs` — `Config`, `DiagramConfig`, `CliOverrides`, `Config::load()`, and `load_from_claude_config()` — primary refactor target
 - `src/lib.rs` — `run()` function, all three command arms; convert arm (~line 211) is the SCAF-03 gap location
 
 ### Phase 08 Reference (for VERIFICATION.md)
+
 - `.planning/phases/08-diagramconfig-waterfall-and-nyquist-compliance/08-01-PLAN.md` — Phase 08 must_haves and success criteria
 - `.planning/phases/08-diagramconfig-waterfall-and-nyquist-compliance/08-02-PLAN.md` — Phase 08 plan 2 criteria
 - `.planning/phases/08-diagramconfig-waterfall-and-nyquist-compliance/08-VALIDATION.md` — existing validation evidence
 - `.planning/v1.0-MILESTONE-AUDIT.md` — SCAF-03 finding details and Phase 08 verification status table
 
 ### Requirements
+
 - `.planning/REQUIREMENTS.md` — SCAF-03 definition (credential + config waterfall)
 
 </canonical_refs>
 
 <code_context>
+
 ## Existing Code Insights
 
 ### Reusable Assets
+
 - `Cli` struct (`src/cli.rs`): already has `plantuml_path: Option<String>` and `mermaid_path: Option<String>` with `#[arg(long, env = "PLANTUML_PATH")]` / `#[arg(long, env = "MERMAID_PATH")]` — clap resolves CLI flag and env var automatically
 - `load_from_claude_config()` (`src/config.rs`): internal function for reading `~/.claude/settings.json` — keep for credential fields
 
 ### Established Patterns
+
 - All tests use `Config::load_with_home()` with a fake home path to avoid reading real credentials — this pattern must be preserved after refactor
 - Existing `test_convert_with_diagram_path_flags` covers CLI flag tier for diagram paths — complement with env-var tier test, don't replace
 
 ### Integration Points
+
 - `CliOverrides` is constructed in `src/lib.rs` `run()` from `Cli` fields and passed to `Config::load()` — this indirection disappears after refactor
 - `DiagramConfig` is consumed only by `MarkdownConverter::new()` — interface unchanged
 
 ### Known Issue (convert arm, ~line 211–226 src/lib.rs)
+
 - The `dotenvy::dotenv().ok()` call in the convert arm is redundant after refactor — `Config::load()` (for update/upload) and clap's env resolution handle this
 - Manual `std::env::var("PLANTUML_PATH").ok()` in convert arm is what causes the SCAF-03 gap (bypasses clap's already-resolved value on `cli.plantuml_path`)
 

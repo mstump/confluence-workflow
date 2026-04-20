@@ -32,6 +32,7 @@ analogs_found: 5
 **Analog:** `src/cli.rs` — existing `anthropic_api_key` field declaration
 
 **Existing flag pattern** (lines 29–31):
+
 ```rust
 /// Anthropic API key (for update command's LLM merge)
 #[arg(long, env = "ANTHROPIC_API_KEY")]
@@ -39,6 +40,7 @@ pub anthropic_api_key: Option<String>,
 ```
 
 **New fields to insert immediately after `anthropic_api_key` and before `verbose`:**
+
 ```rust
 /// Path to PlantUML executable or JAR
 #[arg(long, env = "PLANTUML_PATH")]
@@ -58,6 +60,7 @@ pub mermaid_path: Option<String>,
 **Analog:** `src/config.rs` — all existing patterns are the direct template.
 
 **CliOverrides extension** (current struct at lines 47–52; add two fields):
+
 ```rust
 #[derive(Debug, Default)]
 pub struct CliOverrides {
@@ -71,6 +74,7 @@ pub struct CliOverrides {
 ```
 
 **Config struct extension** (current struct at lines 56–63; add one field):
+
 ```rust
 pub struct Config {
     pub confluence_url: String,
@@ -84,6 +88,7 @@ pub struct Config {
 ```
 
 **Waterfall resolution pattern** (copy from `anthropic_api_key` pattern at lines 115–119; apply twice for diagram paths, with `.unwrap_or_else` default):
+
 ```rust
 // Existing pattern for optional field (lines 115–119):
 let anthropic_api_key = Self::resolve_optional(
@@ -123,6 +128,7 @@ let diagram_config = DiagramConfig {
 **`DiagramConfig` import:** `DiagramConfig` is already defined in `config.rs` (lines 6–37) — no new import needed. The struct construction above replaces what `DiagramConfig::from_env()` currently does, so the resolution logic is identical but now CLI flags feed in at the top of the waterfall.
 
 **Updated `Ok(Config { ... })` return** (lines 134–142; add `diagram_config` field):
+
 ```rust
 Ok(Config {
     confluence_url,
@@ -136,6 +142,7 @@ Ok(Config {
 ```
 
 **Test pattern** (copy from `test_anthropic_api_key_optional` at lines 402–425 — same `#[serial]`, env-save/restore, `CliOverrides` with `..Default::default()` spread):
+
 ```rust
 #[test]
 #[serial]
@@ -166,6 +173,7 @@ fn test_plantuml_path_cli_override() {
 **Analog:** `src/lib.rs` — the existing Update arm pattern at lines 84–101.
 
 **Current `CliOverrides` construction (Update arm, lines 84–89):**
+
 ```rust
 let overrides = CliOverrides {
     confluence_url: cli.confluence_url,
@@ -176,6 +184,7 @@ let overrides = CliOverrides {
 ```
 
 **Updated construction for Update and Upload arms** (add two forwarded fields; `.clone()` on `anthropic_api_key` already present in Update arm):
+
 ```rust
 let overrides = CliOverrides {
     confluence_url: cli.confluence_url,
@@ -188,11 +197,13 @@ let overrides = CliOverrides {
 ```
 
 **Current `MarkdownConverter` construction (all three arms use the same line):**
+
 ```rust
 let converter = MarkdownConverter::default();
 ```
 
 **Replacement for Update and Upload arms** (after `Config::load()` resolves `diagram_config`):
+
 ```rust
 let converter = MarkdownConverter::new(config.diagram_config.clone());
 ```
@@ -200,6 +211,7 @@ let converter = MarkdownConverter::new(config.diagram_config.clone());
 **Convert arm — no `Config::load()` present** (lines 203–237). Two approaches per RESEARCH.md; recommended approach is a standalone `DiagramConfig::load(overrides)` that mirrors `Config::load()`. The simpler inline alternative constructs `DiagramConfig` directly from CLI fields. Whichever the planner chooses, the convert arm pattern is:
 
 Option A — `DiagramConfig::load()` helper (add to `config.rs`):
+
 ```rust
 // In convert arm of lib.rs:
 let diagram_overrides = DiagramConfig::load(&DiagramCliOverrides {
@@ -210,6 +222,7 @@ let converter = MarkdownConverter::new(diagram_overrides);
 ```
 
 Option B — inline construction in convert arm (simpler, no new type):
+
 ```rust
 // In convert arm of lib.rs:
 dotenvy::dotenv().ok();
@@ -238,6 +251,7 @@ Note: `cli.plantuml_path` and `cli.mermaid_path` are `Option<String>` on `Cli`. 
 **Analog:** `.planning/phases/06-credential-waterfall-fix/06-VALIDATION.md` lines 1–9
 
 **Phase 06 reference frontmatter (canonical compliant form):**
+
 ```yaml
 ---
 phase: 6
@@ -251,6 +265,7 @@ audited: 2026-04-13
 ```
 
 **New frontmatter to prepend to `01-VALIDATION.md`** (file currently opens with bare `# Phase 01 Validation` heading — no `---` delimiters exist):
+
 ```yaml
 ---
 phase: 1
@@ -272,6 +287,7 @@ Place this block as the very first lines of the file, before the existing `# Pha
 **Analog:** `.planning/phases/06-credential-waterfall-fix/06-VALIDATION.md` lines 1–9
 
 **Current frontmatter (lines 1–8 of `02-VALIDATION.md`):**
+
 ```yaml
 ---
 phase: 2
@@ -284,6 +300,7 @@ created: 2026-04-10
 ```
 
 **Target frontmatter (fields to change; add `audited` key):**
+
 ```yaml
 ---
 phase: 2
@@ -305,6 +322,7 @@ Pre-condition: executor must verify Phase 02 Wave 0 test items pass (`cargo test
 **Analog:** `.planning/phases/06-credential-waterfall-fix/06-VALIDATION.md` lines 1–9
 
 **Current frontmatter (lines 1–8 of `03-VALIDATION.md`):**
+
 ```yaml
 ---
 phase: 3
@@ -317,6 +335,7 @@ created: 2026-04-10
 ```
 
 **Target frontmatter:**
+
 ```yaml
 ---
 phase: 3
@@ -336,6 +355,7 @@ Pre-condition: executor must verify Phase 03 Wave 0 test items pass (`cargo test
 ## Shared Patterns
 
 ### `#[serial]` for env-var-mutating tests
+
 **Source:** `src/config.rs` lines 237, 267, 294, 315, 346, 375, 402, 432
 **Apply to:** All new `config::tests` functions that call `std::env::set_var` or `std::env::remove_var`
 
@@ -360,6 +380,7 @@ fn test_new_waterfall_field() {
 ```
 
 ### `no_home()` test helper
+
 **Source:** `src/config.rs` lines 241–243
 **Apply to:** All new `config::tests` that call `Config::load_with_home`
 
@@ -372,6 +393,7 @@ fn no_home() -> PathBuf {
 Use `Some(&no_home())` as the `home` argument to prevent any real `~/.claude/settings.json` from being read during tests.
 
 ### `..Default::default()` spread on `CliOverrides`
+
 **Source:** `src/config.rs` lines 318–321, 349–352
 **Apply to:** All test `CliOverrides` construction sites after new fields are added
 
@@ -386,6 +408,7 @@ let overrides = CliOverrides {
 ```
 
 ### `markdownlint` after VALIDATION.md edits
+
 **Source:** CLAUDE.md
 **Apply to:** All three VALIDATION.md file edits
 

@@ -21,6 +21,7 @@
 **User's choice:** "We should be using clap-derive for handling the config parsing. And there is no reason why DiagramConfig would need access to ~/.claude."
 
 **Notes:** User clarified that:
+
 1. The CLI is already on clap-derive and already handles CLI→env resolution via `#[arg(env = "...")]`
 2. `DiagramConfig` does not need a `~/.claude/` tier — that's credentials-only
 3. The structural fix is to remove `CliOverrides` and build `Config` from `Cli` fields directly, eliminating the duplicate env-var reading

@@ -14,7 +14,7 @@
 | Option | Description | Selected |
 |--------|-------------|----------|
 | Trait injection | Add run_with_clients() entry point that skips Config::load; tests pass mock trait objects | |
-| Localhost exemption | Relax https guard to allow http://localhost and http://127.0.0.1 | ✓ |
+| Localhost exemption | Relax https guard to allow <http://localhost> and <http://127.0.0.1> | ✓ |
 | Accept the limitation | Leave test_upload_command_happy_path as #[ignore]; write library-level tests instead | |
 
 **User's choice:** Localhost exemption — simple targeted change, https invariant preserved for non-localhost URLs

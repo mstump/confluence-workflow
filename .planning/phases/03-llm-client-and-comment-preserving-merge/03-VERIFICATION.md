@@ -96,6 +96,7 @@ overrides_applied: 0
 ### Data-Flow Trace (Level 4)
 
 This phase produces a merge engine, not a rendering component. The data flow is library-internal:
+
 - `old_content` (Confluence storage XML) flows through `extract_markers` → `CommentMarker` structs with real byte positions
 - Markers flow through `classify_comment` → deterministic decisions or `ambiguous_list` with real section content references
 - Ambiguous markers flow through `LlmClient::evaluate_comment` → `CommentDecision` based on actual LLM response parsing

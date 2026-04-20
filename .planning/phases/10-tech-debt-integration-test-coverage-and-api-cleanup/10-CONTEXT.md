@@ -24,6 +24,7 @@ This phase does NOT add new features or change user-visible behavior.
 - **D-01:** **Localhost exemption in Config::load_with_home.** The https guard (`must start with https://`) is relaxed to allow `http://localhost` and `http://127.0.0.1` URLs. This enables wiremock-based integration tests (which bind to `http://localhost:PORT`) to pass through `Config::load` without triggering the security error.
 
   Change is ~2 lines in `src/config.rs load_with_home`:
+
   ```rust
   let url_lower = confluence_url.to_ascii_lowercase();
   if !url_lower.starts_with("https://")
@@ -58,6 +59,7 @@ This phase does NOT add new features or change user-visible behavior.
   - Delete `from_env()` function and `impl Default for DiagramConfig` from `src/config.rs`
   - Delete `impl Default for MarkdownConverter` from `src/converter/mod.rs` (it calls `DiagramConfig::default()`)
   - Update `src/converter/tests.rs` — replace `DiagramConfig::default()` and `MarkdownConverter::default()` with explicit construction:
+
     ```rust
     let config = DiagramConfig {
         plantuml_path: "plantuml".to_string(),
@@ -66,6 +68,7 @@ This phase does NOT add new features or change user-visible behavior.
         timeout_secs: 30,
     };
     ```
+
   - Update `src/converter/diagrams.rs` tests — replace `DiagramConfig::from_env()` with the same explicit construction
   - `cargo build` must compile clean with zero warnings after removal
 
@@ -79,11 +82,13 @@ This phase does NOT add new features or change user-visible behavior.
 </decisions>
 
 <canonical_refs>
+
 ## Canonical References
 
 **Downstream agents MUST read these before planning or implementing.**
 
 ### Source Files (Phase 10 scope)
+
 - `src/config.rs` — `Config::load_with_home`, the https guard (search: `starts_with("https://")`), and `DiagramConfig::from_env()`/`impl Default for DiagramConfig` (lines 22-43)
 - `src/llm/mod.rs` — `AnthropicClient::new()` and the hardcoded `https://api.anthropic.com/v1/messages` URL (line ~55)
 - `src/converter/mod.rs` — `impl Default for MarkdownConverter` (lines ~47-51)
@@ -92,21 +97,26 @@ This phase does NOT add new features or change user-visible behavior.
 - `tests/cli_integration.rs` — `test_upload_command_happy_path` (#[ignore], ~line 332); the wiremock pattern for adding new tests
 
 ### Reference Test Patterns
+
 - `src/confluence/client.rs` (mod tests) — how wiremock MockServer is used for Confluence unit tests (the template for integration test mock setup)
 - `tests/llm_integration.rs` — Anthropic response fixtures (tool_use format, KEEP/DROP shape); follow these for the Anthropic wiremock stub
 
 ### Requirements
+
 - `.planning/REQUIREMENTS.md` — CLI-01 and CLI-02 traceability rows (gap closure)
 
 ### Prior Code Review Finding
+
 - `.planning/phases/09-convert-waterfall-fix-and-phase-08-verification/09-REVIEW.md` — IN-01 (DiagramConfig dead code), WR-02 (DiagramConfig duplication) — these are the tech-debt items Phase 10 closes
 
 </canonical_refs>
 
 <code_context>
+
 ## Existing Code Insights
 
 ### Reusable Assets
+
 - `MockConfluenceClient` in `src/confluence/mod.rs` — existing test mock, shows the ConfluenceApi trait shape
 - `MockLlmClient` in `src/llm/mod.rs` — existing test mock for LLM responses
 - `wiremock` crate (already in dev-dependencies) — `MockServer::start().await`, `Mock::given(method(...)).and(path(...)).respond_with(...).mount(...).await`
@@ -114,11 +124,13 @@ This phase does NOT add new features or change user-visible behavior.
 - `serial_test::serial` attribute — already used in env-var-mutating tests; required for any test that sets `ANTHROPIC_BASE_URL`
 
 ### Established Patterns
+
 - Integration tests in `tests/cli_integration.rs` use `temp_markdown()` helper + `TempDir` + `Command::cargo_bin(...)` + `.env(...)` / `.env_remove(...)`
 - The Anthropic API response shape (tool_use KEEP) is documented in `tests/llm_integration.rs` fixtures — copy-paste that response JSON for the wiremock stub
 - Config unit tests use `Config::load_with_home(cli, Some(&no_home()))` with a fake home path to avoid reading real credentials
 
 ### Integration Points
+
 - `AnthropicClient::new(api_key, model)` — `api_key` and `model` come from `config.anthropic_api_key` and `config.anthropic_model` in `run()`; `ANTHROPIC_BASE_URL` env var will be read inside `AnthropicClient::new()` when set
 - `Config::load_with_home` https guard (src/config.rs ~line 88) — single change point for D-01
 

@@ -36,6 +36,7 @@ Comment marker extraction from Confluence storage XML with heading-scoped sectio
 ## What Was Built
 
 ### Task 1: Shared types and comment marker extraction
+
 - **CommentMarker** struct in `src/merge/mod.rs` with fields: full_match, ac_ref, anchor_text, position
 - **CommentDecision** enum with Keep and Drop variants
 - **extract_markers()** in `src/merge/extractor.rs` using combined regex for paired and self-closing `<ac:inline-comment-marker>` elements
@@ -44,6 +45,7 @@ Comment marker extraction from Confluence storage XML with heading-scoped sectio
 - 6 tests covering paired markers, self-closing markers, multiple markers, multiline anchor text, no markers, and byte offset preservation
 
 ### Task 2: Section extraction and deterministic short-circuit classification
+
 - **Section** struct in `src/merge/matcher.rs` with heading, heading_level, content, start_offset, end_offset
 - **extract_sections()** splitting HTML by h1-h6 headings with preamble support (heading="" level=0 for content before first heading)
 - **find_matching_section()** for exact heading text lookup
@@ -56,6 +58,7 @@ Comment marker extraction from Confluence storage XML with heading-scoped sectio
 ### Auto-fixed Issues
 
 **1. [Rule 1 - Bug] Fixed backreference regex incompatibility**
+
 - **Found during:** Task 2
 - **Issue:** Plan specified heading regex `<h([1-6])\b[^>]*>(.*?)</h\1>` which uses a backreference (`\1`). Rust's `regex` crate does not support backreferences.
 - **Fix:** Changed to match only the opening `<h[1-6]>` tag with regex, then programmatically search for the corresponding `</hN>` close tag using `str::find()`.
@@ -63,8 +66,9 @@ Comment marker extraction from Confluence storage XML with heading-scoped sectio
 - **Commit:** 4bee361
 
 **2. [Rule 1 - Bug] Fixed byte offset assertion in test**
+
 - **Found during:** Task 1
-- **Issue:** Test asserted marker position as 12 bytes but `<p>Some text ` is 13 bytes.
+- **Issue:** Test asserted marker position as 12 bytes but `<p>Some text` is 13 bytes.
 - **Fix:** Corrected assertion to 13.
 - **Files modified:** src/merge/extractor.rs
 - **Commit:** a036a1e

@@ -15,6 +15,7 @@ Claude Code has migrated from `.claude/commands/<name>.md` to `.claude/skills/<n
 **Primary recommendation:** Use crates.io publishing for DIST-01 (it is the literal text of the requirement), complete the minimal missing Cargo.toml metadata, install via `houseabsolute/actions-rust-cross` matrix for CI, and author skills in the new `.claude/skills/` format with `disable-model-invocation: true`.
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -39,6 +40,7 @@ Claude Code has migrated from `.claude/commands/<name>.md` to `.claude/skills/<n
 ## Standard Stack
 
 ### Core
+
 | Library / Tool | Version | Purpose | Why Standard |
 |----------------|---------|---------|--------------|
 | `houseabsolute/actions-rust-cross` | v1 | GitHub Action: selects cargo vs cross per target | Abstracts native/cross logic; widely used in Rust ecosystem [VERIFIED: GitHub Marketplace] |
@@ -47,6 +49,7 @@ Claude Code has migrated from `.claude/commands/<name>.md` to `.claude/skills/<n
 | Claude Code skills format | Current (2026) | `.claude/skills/<name>/SKILL.md` | Recommended format per official docs; supersedes `.claude/commands/` [VERIFIED: code.claude.com/docs] |
 
 ### Supporting
+
 | Tool | Purpose | When to Use |
 |------|---------|-------------|
 | `cargo publish --dry-run` | Verify crates.io package before live publish | Run before every publish to catch metadata errors |
@@ -55,6 +58,7 @@ Claude Code has migrated from `.claude/commands/<name>.md` to `.claude/skills/<n
 | `cargo-binstall` | Install pre-compiled binary without recompilation | Optional: adds `[package.metadata.binstall]` to Cargo.toml for binary-first installs |
 
 ### Alternatives Considered
+
 | Instead of | Could Use | Tradeoff |
 |------------|-----------|----------|
 | `houseabsolute/actions-rust-cross` | `cross` CLI directly | More setup; cross v0.2 does not publish Linux ARM binaries (not relevant for this project's targets) |
@@ -64,6 +68,7 @@ Claude Code has migrated from `.claude/commands/<name>.md` to `.claude/skills/<n
 | crates.io publish | `cargo install --git` only | Git install requires Rust toolchain on user machine and takes 2+ minutes to compile; crates.io enables `cargo-binstall` for pre-built installs |
 
 **Installation (CI dependencies — no local install needed):**
+
 ```bash
 # These run inside GitHub Actions; no local install required
 # For local testing of the release profile:
@@ -72,6 +77,7 @@ ls -lh target/release/confluence-agent
 ```
 
 **Cargo.toml metadata additions needed:**
+
 ```toml
 [package]
 # ... existing fields ...
@@ -129,6 +135,7 @@ Claude Code:
 ```
 
 ### Recommended Project Structure (additions for this phase)
+
 ```
 .github/
 └── workflows/
@@ -150,6 +157,7 @@ Claude Code:
 **When to use:** Any time a skill wraps a side-effectful CLI tool the user controls (deploy, upload, sync). Use `disable-model-invocation: true` to prevent Claude from triggering it automatically.
 
 **Example (`~/.claude/skills/confluence-update/SKILL.md`):**
+
 ```yaml
 ---
 name: confluence-update
@@ -168,12 +176,15 @@ confluence-agent update "$0" "$1" --output json
 ```
 
 Report the result to the user:
+
 - On success: show the page URL and the number of comments kept/dropped
 - On failure: show the error message and suggest checking credentials (CONFLUENCE_API_TOKEN, ANTHROPIC_API_KEY)
+
 ```
 ```
 
 **Key design decisions:**
+
 - `disable-model-invocation: true` — this has side effects; user must explicitly type `/confluence-update`
 - `allowed-tools: Bash(confluence-agent *)` — pre-approves the specific binary without granting blanket shell access
 - `"$0"` and `"$1"` — positional arguments from `$ARGUMENTS` indexing
@@ -184,6 +195,7 @@ Report the result to the user:
 **What:** Matrix build across 3 platform/target combinations, each uploading a named artifact, followed by a release job that downloads all artifacts and creates a GitHub Release.
 
 **Example (`.github/workflows/release.yml`):**
+
 ```yaml
 name: Release
 
@@ -255,6 +267,7 @@ jobs:
 ```
 
 **Key notes:**
+
 - `x86_64-unknown-linux-musl` produces a fully static binary (no glibc dependency) — more portable than `gnu` target
 - `fail-fast: false` ensures one platform failure does not cancel other builds
 - `contents: write` permission required for release creation
@@ -263,16 +276,19 @@ jobs:
 ### Pattern 3: crates.io Publishing Checklist
 
 **Minimum metadata required:**
+
 - `description` (sentence or two)
 - `license` (SPDX identifier, e.g., `"MIT"` or `"Apache-2.0"`)
 
 **Strongly recommended:**
+
 - `repository`
 - `readme`
 - `keywords` (max 5)
 - `categories` (from crates.io category list)
 
 **Publish flow:**
+
 ```bash
 cargo publish --dry-run       # verify locally
 cargo publish                 # live publish (irreversible)
@@ -352,6 +368,7 @@ cargo publish                 # live publish (irreversible)
 ## Code Examples
 
 ### Cargo.toml Complete [package] Section
+
 ```toml
 # Source: doc.rust-lang.org/cargo/reference/publishing.html [CITED]
 [package]
@@ -369,6 +386,7 @@ exclude = ["tests/fixtures/**", ".planning/**", ".github/**"]
 ```
 
 ### Skill File — confluence-upload (simpler, no merge)
+
 ```yaml
 # ~/.claude/skills/confluence-upload/SKILL.md
 ---
@@ -388,10 +406,12 @@ confluence-agent upload "$0" "$1" --output json
 ```
 
 Report the result: on success show the page URL; on failure show the error and suggest checking CONFLUENCE_API_TOKEN and CONFLUENCE_URL.
+
 ```
 ```
 
 ### Checking Binary Size Locally
+
 ```bash
 # Source: Cargo docs, verified locally [VERIFIED: target/release/confluence-agent = 4.0 MB]
 cargo build --release
@@ -410,6 +430,7 @@ file target/release/confluence-agent
 | `actions/upload-artifact@v3` | `actions/upload-artifact@v4` | 2024 | v3 deprecated; v4 required for `merge-multiple` flag |
 
 **Deprecated/outdated:**
+
 - `.claude/commands/` format: still works, but skills format is recommended for new work
 - `cross` CLI standalone in GitHub Actions without the action wrapper: requires more manual setup
 
@@ -454,14 +475,17 @@ file target/release/confluence-agent
 | crates.io account + API token | 05-01 (publish) | Unknown | — | `cargo install --git` |
 
 **Missing dependencies with no fallback:**
+
 - crates.io account and API token: required for DIST-01 as literally stated; if absent, the planner should note that a GitHub Actions secret `CARGO_REGISTRY_TOKEN` must be configured
 
 **Missing dependencies with fallback:**
+
 - None for CI/CD (all GitHub Actions tooling is cloud-provisioned)
 
 ## Validation Architecture
 
 ### Test Framework
+
 | Property | Value |
 |----------|-------|
 | Framework | Rust built-in (`cargo test`) + `assert_cmd` for binary integration tests |
@@ -479,6 +503,7 @@ file target/release/confluence-agent
 | DIST-04 | Stripped binary under 15 MB | automated | `cargo build --release && test $(stat -f%z target/release/confluence-agent) -lt 15728640` | ✅ Already satisfied (4.0 MB) |
 
 **DIST-04 already passes.** A one-liner check in CI can gate this:
+
 ```bash
 # macOS stat syntax:
 test $(stat -f%z target/release/confluence-agent) -lt 15728640 && echo "PASS: binary size OK"
@@ -487,11 +512,13 @@ test $(stat -c%s target/release/confluence-agent) -lt 15728640 && echo "PASS: bi
 ```
 
 ### Sampling Rate
+
 - **Per task commit:** `cargo build --release && cargo test` (verify binary still compiles and tests pass)
 - **Per wave merge:** Full `cargo test` suite
 - **Phase gate:** All 4 DIST requirements verified before `/gsd-verify-work`
 
 ### Wave 0 Gaps
+
 - [ ] `skills/confluence-update/SKILL.md` — covers DIST-02 (created in 05-02, then documented for manual install)
 - [ ] `skills/confluence-upload/SKILL.md` — covers DIST-02 (upload variant)
 - [ ] `.github/workflows/release.yml` — covers DIST-03 (created in 05-03)
@@ -523,22 +550,26 @@ test $(stat -c%s target/release/confluence-agent) -lt 15728640 && echo "PASS: bi
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - `code.claude.com/docs/en/slash-commands` — Claude Code skills format, frontmatter fields, `$ARGUMENTS` substitution, `allowed-tools` scoping, `.claude/skills/` vs `.claude/commands/` [VERIFIED: WebFetch 2026-04-20]
 - `doc.rust-lang.org/cargo/reference/publishing.html` — Required/recommended crates.io metadata fields, publish process, size limits [VERIFIED: WebFetch 2026-04-20]
 - `target/release/confluence-agent` — Binary size: 4.0 MB [VERIFIED: `ls -lh` 2026-04-20]
 - `crates.io/api/v1/crates/confluence-agent` — Name availability: NOT FOUND (available) [VERIFIED: curl + JSON parse 2026-04-20]
 
 ### Secondary (MEDIUM confidence)
+
 - `github.com/houseabsolute/actions-rust-cross` — Matrix build pattern with `houseabsolute/actions-rust-cross@v1` [CITED: GitHub README, verified via WebFetch]
 - `ahmedjama.com/blog/2025/12/cross-platform-rust-pipeline-github-actions/` — macOS-latest for Darwin targets, ubuntu-24.04 for Linux, `use_cross: false` for x86_64 [CITED: 2025-12 blog]
 - `softprops/action-gh-release` v2 — GitHub Releases artifact upload pattern [CITED: GitHub Marketplace]
 
 ### Tertiary (LOW confidence)
+
 - None — all critical claims verified via official sources
 
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — all tools verified via official sources or codebase inspection
 - Architecture: HIGH — binary size confirmed; crate name confirmed available; skill format confirmed via live docs
 - Pitfalls: MEDIUM — pitfalls derived from Cargo Book and action documentation; musl linker behavior is ASSUMED based on known Linux cross-compilation behavior

@@ -40,6 +40,7 @@ Hand-rolled Anthropic Messages API client over reqwest with tool_use structured 
 ## What Was Built
 
 ### LlmClient Trait and API Types (Task 1)
+
 - Defined `LlmClient` trait with `evaluate_comment` method using `async_trait` with `Send + Sync` bounds
 - Created serde types for the Anthropic Messages API: `MessageRequest`, `MessageResponse`, `ContentBlock` (tagged enum for text/tool_use), `ToolDefinition`, `ToolChoice`, `Message`, `EvaluateCommentInput`
 - Extended `Config` struct with `anthropic_model` (default: `claude-haiku-4-5-20251001`) and `anthropic_concurrency` (default: 5)
@@ -47,6 +48,7 @@ Hand-rolled Anthropic Messages API client over reqwest with tool_use structured 
 - 8 unit tests: serde round-trips, MockLlmClient trait implementation
 
 ### AnthropicClient Implementation (Task 2)
+
 - `AnthropicClient` struct with `reqwest::Client`, api_key, model, endpoint fields
 - `with_endpoint` constructor for test injection (wiremock)
 - `request_with_retry`: exponential backoff (1s start, 2x multiply, 32s cap) with +/-25% jitter

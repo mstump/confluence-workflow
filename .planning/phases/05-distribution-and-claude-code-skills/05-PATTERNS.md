@@ -21,6 +21,7 @@
 **Analog:** `/Users/matthewstump/src/confluence-workflow/Cargo.toml` (existing `[package]` section, lines 1–5)
 
 **Existing package block** (lines 1–5):
+
 ```toml
 [package]
 name = "confluence-agent"
@@ -30,6 +31,7 @@ rust-version = "1.80"
 ```
 
 **Fields to add** (insert after `rust-version`, before `[[bin]]`):
+
 ```toml
 description = "Merge Markdown files into Confluence pages while preserving inline comments"
 license = "MIT OR Apache-2.0"
@@ -41,6 +43,7 @@ exclude = ["tests/fixtures/**", ".planning/**", ".github/**"]
 ```
 
 **Existing release profile** (lines 35–40 — already correct, do not modify):
+
 ```toml
 [profile.release]
 opt-level = "z"
@@ -51,6 +54,7 @@ panic = "abort"
 ```
 
 **Key notes:**
+
 - `license = "MIT OR Apache-2.0"` is the Rust ecosystem dual-license convention; requires both `LICENSE-MIT` and `LICENSE-APACHE` files, OR a single `LICENSE` file covering both
 - The existing `LICENSE` file contains GPL-3, which is incompatible with crates.io `"MIT OR Apache-2.0"` declaration — the LICENSE file must be replaced
 - `exclude` list prevents large test fixtures from bloating the `.crate` file past crates.io 10 MB limit
@@ -65,15 +69,18 @@ panic = "abort"
 **Critical finding:** The existing `LICENSE` is GNU GPL v3. This is incompatible with crates.io publication under `license = "MIT OR Apache-2.0"`. The planner must decide: either keep GPL-3 and set `license = "GPL-3.0"` in Cargo.toml, or replace the LICENSE file with MIT/Apache-2.0 text.
 
 **If choosing MIT OR Apache-2.0 (Rust ecosystem convention):**
+
 - Replace `LICENSE` with MIT license text (single file approach), or
 - Create `LICENSE-MIT` and `LICENSE-APACHE` as separate files (dual-file approach)
 - crates.io accepts either; the single `LICENSE` field in Cargo.toml must match exactly what is in the file
 
 **If keeping GPL-3 (simplest — no file change needed):**
+
 ```toml
 # In Cargo.toml [package]:
 license = "GPL-3.0"
 ```
+
 - No LICENSE file changes required
 - crates.io accepts GPL-3.0
 - Caveat: GPL-3.0 is copyleft; users must open-source derivative works
@@ -87,6 +94,7 @@ license = "GPL-3.0"
 **Analog:** `/Users/matthewstump/src/confluence-workflow/.claude/commands/confluence-publish.md`
 
 **Existing commands format pattern** (entire file — lines 1–29):
+
 ```markdown
 Publish the current markdown file to Confluence using the confluence-agent CLI.
 
@@ -102,6 +110,7 @@ Publish the current markdown file to Confluence using the confluence-agent CLI.
    export PYTHONPATH=./src
    uv run python -m confluence_agent.cli update '<markdown_path>' '<page_url>'
    ```
+
 ```
 
 **Key structural differences for the new skill format:**
@@ -120,15 +129,18 @@ allowed-tools: Bash(confluence-agent *)
 ```
 
 **New skill invocation pattern** (Rust binary, not Python):
+
 ```bash
 confluence-agent update "$0" "$1" --output json
 ```
 
 **Success/failure reporting pattern** (from main.rs JSON output, lines 30–43):
+
 - On success: JSON contains `page_url`, `comments_kept`, `comments_dropped`
 - On failure: JSON contains error message; exit code 1
 
 **Key differences from existing `.claude/commands/confluence-publish.md`:**
+
 - Existing command: interactive multi-step workflow, asks user for confirmation, uses Python `uv run`
 - New skill: single-command execution, `disable-model-invocation: true`, uses Rust binary directly, `--output json` for machine-readable output
 - New skill uses `$0`/`$1` positional argument indexing from `$ARGUMENTS`
@@ -143,6 +155,7 @@ confluence-agent update "$0" "$1" --output json
 Same structural pattern as `confluence-update/SKILL.md` above, with these differences:
 
 **Frontmatter:**
+
 ```yaml
 ---
 name: confluence-upload
@@ -154,11 +167,13 @@ allowed-tools: Bash(confluence-agent *)
 ```
 
 **Invocation command** (uses `upload` subcommand, not `update`):
+
 ```bash
 confluence-agent upload "$0" "$1" --output json
 ```
 
 **Success JSON shape** (from main.rs lines 60–62 — simpler than update):
+
 - On success: JSON contains only `page_url` (no comment counts)
 - On failure: JSON contains error message; exit code 1
 
@@ -169,6 +184,7 @@ confluence-agent upload "$0" "$1" --output json
 **Analog:** `/Users/matthewstump/src/confluence-workflow/.github/workflows/publish.yml`
 
 **Existing workflow structural pattern** (lines 1–43 — Docker publish workflow):
+
 ```yaml
 name: Publish Docker image
 
@@ -195,11 +211,13 @@ jobs:
 ```
 
 **Pattern elements to carry forward from existing workflow:**
+
 - `uses: actions/checkout@v4` — same version already in use
 - Single-job structure (existing) becomes two-job structure (build matrix + release)
 - `permissions:` block at job level — existing workflow uses this pattern
 
 **New release workflow structural differences:**
+
 - Trigger: `push: tags: - "v*"` instead of branch push
 - `permissions: contents: write` (release creation requires write, not read)
 - Matrix strategy with `fail-fast: false` (no analog in existing workflow)
@@ -209,6 +227,7 @@ jobs:
 - Uses `actions/upload-artifact@v4` + `actions/download-artifact@v4` for inter-job artifact passing
 
 **Complete new workflow pattern** (from RESEARCH.md Pattern 2):
+
 ```yaml
 name: Release
 
@@ -284,8 +303,10 @@ jobs:
 ## Shared Patterns
 
 ### Binary Invocation (CLI subcommands and flags)
+
 **Source:** `/Users/matthewstump/src/confluence-workflow/src/main.rs` lines 29–43
 **Apply to:** Both SKILL.md files
+
 ```rust
 // JSON output mode (--output json):
 // Success: prints JSON to stdout, exits 0
@@ -294,24 +315,31 @@ jobs:
 // The binary subcommands are: update, upload, convert
 // --output json flag enables machine-readable output
 ```
+
 Skills must use `--output json` so Claude can parse the structured result rather than scraping human-readable text.
 
 ### GitHub Actions Checkout Version
+
 **Source:** `/Users/matthewstump/src/confluence-workflow/.github/workflows/publish.yml` line 17
 **Apply to:** `.github/workflows/release.yml`
+
 ```yaml
 - uses: actions/checkout@v4
 ```
+
 The existing workflow already pins to `@v4` — maintain this version for consistency.
 
 ### GitHub Actions Permissions Block
+
 **Source:** `/Users/matthewstump/src/confluence-workflow/.github/workflows/publish.yml` lines 11–13
 **Apply to:** `.github/workflows/release.yml`
+
 ```yaml
 permissions:
   contents: read   # existing pattern (read only)
   packages: write
 ```
+
 The new release workflow needs `contents: write` instead of `contents: read` to create GitHub Releases.
 
 ---

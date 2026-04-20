@@ -33,6 +33,7 @@ Created `.github/workflows/release.yml` — a GitHub Actions workflow that build
 ## Key Files
 
 ### Created
+
 - `.github/workflows/release.yml` — cross-platform CI/CD release pipeline
 
 ## Deviations

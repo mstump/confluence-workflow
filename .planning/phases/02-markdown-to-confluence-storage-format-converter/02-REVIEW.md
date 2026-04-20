@@ -62,6 +62,7 @@ when it should have been suppressed (if this was the first H1) or the image clea
 will fight with whatever the heading suppress state expected.
 
 More concretely: if a `# ![img](x.png)` heading is the first H1, the sequence is:
+
 1. `Start(Tag::Heading { level: 1 })` — sets `skip_heading_content = true`
 2. `Start(Tag::Image)` — sets `skip_heading_content = true` (no-op here)
 3. `End(TagEnd::Image)` — resets `skip_heading_content = false` (WRONG: still in H1)
@@ -148,6 +149,7 @@ file is automatically cleaned up on drop, but the output `.svg` path is a separa
 file that must be manually removed.
 
 The code attempts cleanup at line 143:
+
 ```rust
 let _ = std::fs::remove_file(&output_path);
 ```

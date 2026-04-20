@@ -109,9 +109,11 @@ Not applicable for this phase — all artifacts are CLI infrastructure and API c
 #### 1. Upload command against real Confluence instance
 
 **Test:** Create a test markdown file (e.g., `test.md` with content `# Test`). Run:
+
 ```
 confluence-agent upload test.md https://<your-domain>.atlassian.net/wiki/spaces/<SPACE>/pages/<ID>/Test+Page
 ```
+
 With credentials set via env vars `CONFLUENCE_URL`, `CONFLUENCE_USERNAME`, `CONFLUENCE_API_TOKEN`.
 
 **Expected:** Command outputs `Uploaded test.md to <url>` and the Confluence page content is replaced with the markdown text. No error is returned.

@@ -75,15 +75,15 @@ require a separate `ANTHROPIC_API_KEY` setup. This is a key UX improvement.
 
 ## Key Decisions
 
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| Full Rust rewrite, clean break | Performance, single binary distribution, no Python runtime | — In Progress |
-| Drop MCP server | Complexity not justified; Claude Code skills cover the use case | — Pending |
-| Per-comment parallel evaluation | Smaller context = better LLM results; parallel = faster runtime | — Pending |
-| Anthropic-only at launch | User already has Claude Code credentials; simplest path to working | — Pending |
-| Credentials from `~/.claude/` config | Reuse existing Claude Code setup, no extra env var needed | — Pending |
-| reqwest + serde for Confluence API | No Python dependency; Confluence REST API is stable and well-documented | — Pending |
-| PlantUML: jar or server URL configurable | Flexibility without requiring Java in PATH for server users | — Pending |
+| Decision                                 | Rationale                                                               | Outcome       |
+|------------------------------------------|-------------------------------------------------------------------------|---------------|
+| Full Rust rewrite, clean break           | Performance, single binary distribution, no Python runtime              | — In Progress |
+| Drop MCP server                          | Complexity not justified; Claude Code skills cover the use case         | — Pending     |
+| Per-comment parallel evaluation          | Smaller context = better LLM results; parallel = faster runtime         | — Pending     |
+| Anthropic-only at launch                 | User already has Claude Code credentials; simplest path to working      | — Pending     |
+| Credentials from `~/.claude/` config     | Reuse existing Claude Code setup, no extra env var needed               | — Pending     |
+| reqwest + serde for Confluence API       | No Python dependency; Confluence REST API is stable and well-documented | — Pending     |
+| PlantUML: jar or server URL configurable | Flexibility without requiring Java in PATH for server users             | — Pending     |
 
 ## Evolution
 

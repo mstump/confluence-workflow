@@ -42,6 +42,7 @@ MarkdownConverter struct implementing Converter trait, delegating to ConfluenceR
 ## What Was Done
 
 ### Task 1: MarkdownConverter implementing Converter trait with edge case hardening
+
 **Commit:** `6b7fd51` (RED), `b2152d8` (GREEN)
 
 - Added `MarkdownConverter` struct to `src/converter/mod.rs` implementing `Converter` trait
@@ -52,6 +53,7 @@ MarkdownConverter struct implementing Converter trait, delegating to ConfluenceR
 - Added TDD tests: empty input, whitespace-only, frontmatter stripping, diagram placeholder preservation
 
 ### Task 2: Comprehensive integration tests with snapshot assertions
+
 **Commit:** `5db4491`
 
 - `test_full_document_snapshot`: Full document with headings, code, tables, links, images, lists, blockquote, hr -- all verified via structural assertions and insta snapshot

@@ -13,6 +13,7 @@ This is a surgical, low-risk change touching exactly three files with no new dep
 **Primary recommendation:** Add `--anthropic-api-key` to `Cli` struct, pass it through `CliOverrides` in both `update` and `upload` arms of `run()`, and fix `test_update_command_missing_api_key` to use an `https://` URL so the ANTHROPIC_API_KEY check fires before the HTTPS guard.
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -35,6 +36,7 @@ This is a surgical, low-risk change touching exactly three files with no new dep
 No new dependencies required. This phase uses only existing crate features.
 
 ### Core (already present)
+
 | Library | Version | Purpose | Status |
 |---------|---------|---------|--------|
 | clap | 4.6 | CLI argument parsing with `#[derive(Parser)]` | Already in Cargo.toml [VERIFIED: Cargo.toml line 17] |
@@ -42,6 +44,7 @@ No new dependencies required. This phase uses only existing crate features.
 | dirs | 6.0 | Home directory resolution for ~/.claude/ | Already in Cargo.toml [VERIFIED: Cargo.toml line 22] |
 
 ### Testing (already present)
+
 | Library | Version | Purpose | Status |
 |---------|---------|---------|--------|
 | assert_cmd | 2 | CLI binary integration testing | Already in dev-dependencies [VERIFIED: Cargo.toml line 33] |
@@ -73,17 +76,21 @@ The Confluence credentials (`confluence_url`, `confluence_username`, `confluence
 The fix mirrors the existing `confluence_token` pattern exactly:
 
 **cli.rs** -- add field to `Cli` struct:
+
 ```rust
 /// Anthropic API key (for update command's LLM merge)
 #[arg(long, env = "ANTHROPIC_API_KEY")]
 pub anthropic_api_key: Option<String>,
 ```
+
 [Pattern source: src/cli.rs line 27 -- confluence_token uses identical pattern] [VERIFIED]
 
 **lib.rs** -- wire in both arms:
+
 ```rust
 anthropic_api_key: cli.anthropic_api_key.clone(),  // was: None
 ```
+
 [Pattern source: src/lib.rs line 87 -- confluence_api_token uses identical pattern] [VERIFIED]
 
 Note: `cli.anthropic_api_key` needs `.clone()` because it is used in the Update arm and the `cli` struct is moved into the match. Since both Update and Upload construct CliOverrides before any other use of `cli` fields, a single `.clone()` on the Option suffices. Actually, looking at the code more carefully: `cli` is moved into `match cli.command`, so `cli.anthropic_api_key` is accessible in each arm because the match destructures `cli.command` while `cli.confluence_url` etc. are accessed as `cli.field_name`. This is the same pattern used for `cli.confluence_url`, `cli.confluence_username`, and `cli.confluence_token`. [VERIFIED: src/lib.rs lines 79-88]
@@ -109,18 +116,21 @@ Also update the page_url parameter from `http://localhost:19999/wiki/...` to `ht
 ## Common Pitfalls
 
 ### Pitfall 1: clap `env` Attribute Conflicting with Waterfall
+
 **What goes wrong:** Adding `env = "ANTHROPIC_API_KEY"` to the clap `#[arg]` means clap itself will read the env var and populate the field, bypassing the waterfall in `Config::resolve_optional`.
 **Why it happens:** clap's `env` feature makes the CLI flag also read from the env var automatically.
 **How to avoid:** This is actually fine in this codebase. Looking at the existing pattern: `confluence_token` has `#[arg(long, env = "CONFLUENCE_API_TOKEN")]`. When clap populates the field from the env var, it becomes `Some(value)` which then goes into `CliOverrides` and takes the CLI-override path in `resolve_required`/`resolve_optional`. The env var tier in the waterfall also reads it. The net effect is correct: the CLI flag value (or env var value via clap) takes highest precedence. The only subtle case: if a user sets ANTHROPIC_API_KEY in the environment, clap will populate the field, and it will be treated as a "CLI override" in the waterfall. This is the same behavior as the Confluence credentials and is acceptable. [VERIFIED: existing pattern in src/cli.rs lines 19-27]
 **Warning signs:** None -- this is the established pattern.
 
 ### Pitfall 2: Test HTTPS Guard Order
+
 **What goes wrong:** Test uses `http://` URL, HTTPS guard fires before the intended error check.
 **Why it happens:** `Config::load` validates HTTPS before returning, so `anthropic_api_key` check in `lib.rs` never executes.
 **How to avoid:** Use `https://` URL in test. The connection will never be attempted because the missing API key check fires first. [VERIFIED: src/config.rs lines 92-98, src/lib.rs lines 92-97]
 **Warning signs:** Test assertion using `||` disjunction that matches on generic "Error" string.
 
 ### Pitfall 3: Forgetting the Upload Arm
+
 **What goes wrong:** Only wiring `anthropic_api_key` in the Update arm, leaving Upload with `None`.
 **Why it happens:** Upload does not currently use the API key (no LLM merge), but the `CliOverrides` struct should still be consistent.
 **How to avoid:** Wire in both arms. Even though Upload does not validate the API key, the `CliOverrides` should faithfully represent what the user provided. Future features may need it. [VERIFIED: src/lib.rs lines 84-88, 162-166]
@@ -128,6 +138,7 @@ Also update the page_url parameter from `http://localhost:19999/wiki/...` to `ht
 ## Code Examples
 
 ### Exact Change 1: cli.rs -- Add Field
+
 ```rust
 // Source: follows existing pattern at src/cli.rs line 27
 // Add after confluence_token field:
@@ -138,6 +149,7 @@ pub anthropic_api_key: Option<String>,
 ```
 
 ### Exact Change 2: lib.rs -- Update arm (line 88)
+
 ```rust
 // Source: src/lib.rs line 88
 // Change from:
@@ -147,6 +159,7 @@ anthropic_api_key: cli.anthropic_api_key.clone(),
 ```
 
 ### Exact Change 3: lib.rs -- Upload arm (line 166)
+
 ```rust
 // Source: src/lib.rs line 166
 // Change from:
@@ -156,6 +169,7 @@ anthropic_api_key: cli.anthropic_api_key.clone(),
 ```
 
 ### Exact Change 4: test fix -- tests/cli_integration.rs
+
 ```rust
 // Source: tests/cli_integration.rs line 223
 // Change from:
@@ -179,6 +193,7 @@ stderr.contains("ANTHROPIC_API_KEY")
 ## Validation Architecture
 
 ### Test Framework
+
 | Property | Value |
 |----------|-------|
 | Framework | cargo test (built-in) + assert_cmd 2 |
@@ -187,6 +202,7 @@ stderr.contains("ANTHROPIC_API_KEY")
 | Full suite command | `cargo test` |
 
 ### Phase Requirements -> Test Map
+
 | Req ID | Behavior | Test Type | Automated Command | File Exists? |
 |--------|----------|-----------|-------------------|-------------|
 | SCAF-02 | --anthropic-api-key flag accepted by CLI | integration | `cargo test --test cli_integration test_update_command_missing_api_key -x` | Yes (needs fix) |
@@ -194,11 +210,13 @@ stderr.contains("ANTHROPIC_API_KEY")
 | SCAF-03 | Missing API key produces correct error (not HTTPS error) | integration | `cargo test --test cli_integration test_update_command_missing_api_key -x` | Yes (needs fix) |
 
 ### Sampling Rate
+
 - **Per task commit:** `cargo test --test cli_integration -x && cargo test --lib config::tests -x`
 - **Per wave merge:** `cargo test`
 - **Phase gate:** Full suite green before `/gsd-verify-work`
 
 ### Wave 0 Gaps
+
 None -- existing test infrastructure covers all phase requirements. The test file exists and the test function exists; only the test content needs fixing.
 
 ## Security Domain
@@ -237,6 +255,7 @@ None. The gap is fully characterized by the milestone audit, the fix pattern is 
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - `src/cli.rs` -- current Cli struct, existing clap patterns
 - `src/lib.rs` -- run() function, both Update and Upload arms with hardwired `None`
 - `src/config.rs` -- CliOverrides struct, Config::load, resolve_optional, resolve_required
@@ -245,14 +264,17 @@ None. The gap is fully characterized by the milestone audit, the fix pattern is 
 - `src/error.rs` -- ConfigError::Missing variant
 
 ### Secondary (MEDIUM confidence)
+
 - None needed -- all findings are from direct codebase inspection
 
 ### Tertiary (LOW confidence)
+
 - None
 
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH -- no new dependencies, all existing
 - Architecture: HIGH -- fix pattern mirrors existing working code exactly
 - Pitfalls: HIGH -- identified from direct code inspection, all verified

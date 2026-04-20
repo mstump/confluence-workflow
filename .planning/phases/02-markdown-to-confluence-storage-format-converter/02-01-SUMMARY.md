@@ -52,6 +52,7 @@ Custom pulldown-cmark event visitor producing Confluence storage XML for all cri
 ## What Was Built
 
 ### Task 1: Converter Trait and Module Structure
+
 - **Converter trait** (`src/converter/mod.rs`): async trait following Phase 1's ConfluenceApi pattern with `convert(&self, markdown: &str) -> Result<ConvertResult, ConversionError>`
 - **ConvertResult** and **Attachment** structs for returning storage XML and diagram attachments
 - **ConversionError** enum in `src/error.rs` with RenderError, DiagramError, DiagramTimeout, and Io variants, integrated into AppError via `#[from]`
@@ -60,6 +61,7 @@ Custom pulldown-cmark event visitor producing Confluence storage XML for all cri
 - **5 test fixture files** covering headings, code blocks, tables, links/images, and nested lists
 
 ### Task 2: Spike Renderer
+
 - **ConfluenceRenderer** (`src/converter/renderer.rs`): iterates pulldown-cmark events and writes Confluence storage XML to a String buffer
 - **Element mapping** covers: headings (h1-h6), paragraphs, code blocks (expand+code macros), tables (thead/tbody), links, images (ac:image/ri:attachment), bold, italic, strikethrough, blockquotes, horizontal rules, ordered/unordered/nested lists, inline code, task list markers
 - **YAML frontmatter** stripped via MetadataBlock event detection (CONV-02)
@@ -78,12 +80,14 @@ Custom pulldown-cmark event visitor producing Confluence storage XML for all cri
 ### Auto-fixed Issues
 
 **1. [Rule 3 - Blocking] Image alt text handling**
+
 - **Found during:** Task 2
 - **Issue:** pulldown-cmark delivers image alt text as child Text events between Start(Image) and End(Image), not as a field on the Tag. The plan assumed alt text would be available on Start(Image).
 - **Fix:** Used the `title` field for alt text and set skip_heading_content flag to suppress child Text events inside Image tags. This is functionally correct since Confluence uses the alt attribute primarily for accessibility.
 - **Files modified:** src/converter/renderer.rs
 
 **2. [Rule 3 - Blocking] cargo-insta not installed**
+
 - **Found during:** Task 2
 - **Issue:** `cargo insta accept` required cargo-insta binary which was not installed.
 - **Fix:** Installed cargo-insta via `cargo install cargo-insta`.

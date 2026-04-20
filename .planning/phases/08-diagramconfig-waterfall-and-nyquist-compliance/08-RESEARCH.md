@@ -105,6 +105,7 @@ src/
 **When to use:** All user-configurable paths or credentials that can come from CLI or environment.
 
 **Example (Phase 6 reference):**
+
 ```rust
 // Source: src/cli.rs (verified in codebase)
 /// Anthropic API key (for update command's LLM merge)
@@ -113,6 +114,7 @@ pub anthropic_api_key: Option<String>,
 ```
 
 Apply identically for diagram paths:
+
 ```rust
 /// Path to PlantUML executable or JAR
 #[arg(long, env = "PLANTUML_PATH")]
@@ -128,6 +130,7 @@ pub mermaid_path: Option<String>,
 **What:** `CliOverrides` is the typed bridge between `Cli` (clap) and `Config::load()`. Add a field for each new CLI flag.
 
 **Example:**
+
 ```rust
 // Source: src/config.rs (verified in codebase)
 pub struct CliOverrides {
@@ -146,6 +149,7 @@ pub struct CliOverrides {
 **What:** `DiagramConfig.plantuml_path` and `mermaid_path` are optional strings with sensible defaults ("plantuml", "mmdc"). Use `resolve_optional` and fall back to the defaults if no source provides a value.
 
 **Example:**
+
 ```rust
 // Source: src/config.rs Config::load_with_home (verified in codebase)
 // Pattern for optional fields with defaults:
@@ -169,6 +173,7 @@ Note: `mermaid_puppeteer_config` and `timeout_secs` remain env-only (no CLI flag
 **What:** Move `DiagramConfig` from a standalone `from_env()` construction at call sites into `Config` as a field.
 
 **Example:**
+
 ```rust
 pub struct Config {
     pub confluence_url: String,
@@ -265,6 +270,7 @@ audited: 2026-04-14
 **Why it happens:** The Nyquist compliance task says "set the frontmatter" without auditing whether the underlying Wave 0 work was actually done.
 
 **How to avoid:** Before setting `wave_0_complete: true`, verify the actual state of the Wave 0 items:
+
 - Phase 02 Wave 0: `src/converter/tests.rs` — does it exist and have the required stubs?
 - Phase 03 Wave 0: `src/llm/mod.rs`, `src/merge/mod.rs`, etc. — do they exist with tests?
 
@@ -376,6 +382,7 @@ audited: 2026-04-14
 ### VALIDATION.md frontmatter — Phases 02 and 03 (keys exist, values must change)
 
 For Phase 02, change:
+
 ```yaml
 nyquist_compliant: false  ->  nyquist_compliant: true
 wave_0_complete: false    ->  wave_0_complete: true
@@ -496,6 +503,7 @@ None.
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — no new dependencies; all libraries already in use
 - Architecture: HIGH — waterfall pattern is identical to Phase 6; only new field names differ
 - Pitfalls: HIGH — gaps identified directly from audit report and codebase inspection
@@ -504,6 +512,7 @@ None.
 **Valid until:** 2026-05-14 (stable codebase, no external API changes)
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |

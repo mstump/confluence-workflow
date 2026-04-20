@@ -238,6 +238,6 @@ let timeout_secs = std::env::var("DIAGRAM_TIMEOUT")
 
 ---
 
-_Reviewed: 2026-04-20_
-_Reviewer: Claude (gsd-code-reviewer)_
-_Depth: standard_
+*Reviewed: 2026-04-20*
+*Reviewer: Claude (gsd-code-reviewer)*
+*Depth: standard*

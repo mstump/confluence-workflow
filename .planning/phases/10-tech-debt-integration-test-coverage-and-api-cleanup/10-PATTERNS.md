@@ -23,11 +23,13 @@
 **Role:** integration-test  **Data Flow:** request-response (spawn binary; both Confluence and Anthropic mocked via wiremock)
 
 **Analogs (composition of three):**
+
 - **Binary invocation + env scrubbing pattern** — `tests/cli_integration.rs::test_convert_command` (lines 27-83) and `tests/cli_integration.rs::test_convert_with_env_var_diagram_paths` (lines 424-477)
 - **Confluence wiremock stub pattern** — `src/confluence/client.rs` mod tests (lines 198-394)
 - **Anthropic wiremock stub pattern** — `tests/llm_integration.rs` (lines 1-80)
 
 **Imports pattern** — copy from `tests/cli_integration.rs:1-6` and extend with wiremock/tokio/serde_json/serial_test:
+
 ```rust
 // Source: tests/cli_integration.rs:1-6 (existing) + additions from tests/llm_integration.rs:1-4
 use assert_cmd::Command;
@@ -40,6 +42,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 ```
 
 **Confluence mock pattern** — copy the `page_json` helper shape from `src/confluence/client.rs:204-216`:
+
 ```rust
 // Source: src/confluence/client.rs:204-216 (adapted — title field + optional inline-comment-marker)
 fn page_json_with_comment(id: &str, version: u32) -> serde_json::Value {
@@ -58,6 +61,7 @@ fn page_json_with_comment(id: &str, version: u32) -> serde_json::Value {
 ```
 
 **Confluence Mock-mounting pattern** — copy from `src/confluence/client.rs:218-232` (GET 200) and `src/confluence/client.rs:263-279` (PUT 200):
+
 ```rust
 // Source: src/confluence/client.rs:218-232 (GET 200) + src/confluence/client.rs:263-279 (PUT 200)
 let confluence = MockServer::start().await;
@@ -76,6 +80,7 @@ Mock::given(method("PUT"))
 ```
 
 **Anthropic mock-response pattern** — copy `tool_use_response` verbatim from `tests/llm_integration.rs:19-37`:
+
 ```rust
 // Source: tests/llm_integration.rs:19-37 — KEEP variant with no reason
 fn anthropic_tool_use_keep_response() -> serde_json::Value {
@@ -96,6 +101,7 @@ fn anthropic_tool_use_keep_response() -> serde_json::Value {
 ```
 
 **Anthropic Mock-mounting pattern** — copy from `tests/llm_integration.rs:54-68` (match on `path("/")`, NOT `/v1/messages` — see Pitfall 3 in RESEARCH.md):
+
 ```rust
 // Source: tests/llm_integration.rs:54-68 — endpoint is the full URL, so match on "/"
 let anthropic = MockServer::start().await;
@@ -107,6 +113,7 @@ Mock::given(method("POST"))
 ```
 
 **Binary spawn + env scrub pattern** — copy from `tests/cli_integration.rs:220-252` (`test_update_command_missing_api_key`, same flag set) and extend with `.env("ANTHROPIC_BASE_URL", anthropic.uri())`:
+
 ```rust
 // Source: tests/cli_integration.rs:223-236 (arg-set) + tests/cli_integration.rs:264-266 (env-remove)
 // + D-03 addition: .env("ANTHROPIC_BASE_URL", ...)
@@ -131,6 +138,7 @@ let output = cmd.output().expect("run command");
 ```
 
 **Assertion pattern** — copy the success + stdout-substring + D-07 tracing-free block from `tests/cli_integration.rs:42-78`:
+
 ```rust
 // Source: tests/cli_integration.rs:42-78
 assert!(
@@ -147,6 +155,7 @@ assert!(
 ```
 
 **Wiremock call-count verification pattern** — copy the `received_requests()` approach from `tests/llm_integration.rs:107-111`:
+
 ```rust
 // Source: tests/llm_integration.rs:107-111 — proves the LLM endpoint was actually hit
 let llm_requests = anthropic.received_requests().await.unwrap();
@@ -154,6 +163,7 @@ assert!(!llm_requests.is_empty(), "LLM should have been called for the inline co
 ```
 
 **`#[serial]` attribute pattern** — copy from `tests/cli_integration.rs:425`:
+
 ```rust
 // Source: tests/cli_integration.rs:425 — precedent for env-var-mutating test
 #[tokio::test]
@@ -170,6 +180,7 @@ async fn test_update_command_happy_path() { /* ... */ }
 **Analog:** Same as `test_update_command_happy_path` above, minus the Anthropic mock (upload bypasses LLM merge). The existing stub at `tests/cli_integration.rs:331-336` (empty body, `#[ignore]`) is the site to edit in place.
 
 **Pattern to replace** (`tests/cli_integration.rs:331-336`, current state):
+
 ```rust
 #[test]
 #[ignore = "happy-path requires https:// server; wiremock is http-only (T-01-04 constraint)"]
@@ -180,6 +191,7 @@ fn test_upload_command_happy_path() {
 ```
 
 **Replacement pattern** — un-ignore, switch to `#[tokio::test] #[serial] async`, body reuses the same patterns as the update test (Confluence wiremock GET + PUT, binary spawn, assertions) but:
+
 - No Anthropic wiremock server
 - No `--anthropic-api-key` arg
 - `.env_remove("ANTHROPIC_API_KEY")` and `.env_remove("ANTHROPIC_BASE_URL")` instead of `.env(...)`
@@ -196,6 +208,7 @@ Concrete pattern matches the skeleton already provided in `10-RESEARCH.md:509-56
 **Analog (same file, in-place edit):** `src/config.rs:86-93` (the current strict guard)
 
 **Existing guard to modify** (current state, lines 86-93):
+
 ```rust
 // Source: src/config.rs:86-93 (current, strict)
 // Threat model T-01-04: validate scheme to prevent accidental HTTP use.
@@ -209,6 +222,7 @@ if !confluence_url.to_ascii_lowercase().starts_with("https://") {
 ```
 
 **Replacement pattern** (per D-01; matches the ascii-lowercase style already in use):
+
 ```rust
 // Replacement: add narrow localhost exemption. Reuse the existing ascii-lowercase
 // comparison style; T-01-04 invariant preserved for all non-localhost hosts.
@@ -269,6 +283,7 @@ fn test_confluence_url_localhost_exemption() {
 **Analog:** The code itself at `src/config.rs:22-44` is the removal target. Other constructors in the codebase show the surviving style — explicit struct literals (e.g., `src/config.rs:144-149` builds a `DiagramConfig { ... }` struct literal inline in `Config::load_with_home`, which is the style callers should adopt).
 
 **Existing "keep" pattern** — `src/config.rs:144-149` is the canonical explicit-struct construction that remains after D-04:
+
 ```rust
 // Source: src/config.rs:144-149 — production call site, survives D-04
 let diagram_config = DiagramConfig {
@@ -290,12 +305,14 @@ let diagram_config = DiagramConfig {
 **Analog 1 (existing test seam):** `src/llm/mod.rs::with_endpoint` at lines 60-83 — already exists, unchanged; `new()` delegates to it.
 
 **Analog 2 (env-var-first-then-default idiom):** `src/config.rs::DiagramConfig::from_env` at lines 25-37 (being removed by D-04 but the idiom itself is idiomatic Rust):
+
 ```rust
 // Source pattern: env::var(...).ok().unwrap_or_else(...) — from src/config.rs:27-28
 std::env::var("PLANTUML_PATH").unwrap_or_else(|_| "plantuml".to_string())
 ```
 
 **Existing `new()` to replace** (`src/llm/mod.rs:49-57`):
+
 ```rust
 // Source: src/llm/mod.rs:49-57 (current state — hardcoded URL)
 /// Create a new client pointing at the production Anthropic API.
@@ -309,6 +326,7 @@ pub fn new(api_key: String, model: String) -> Self {
 ```
 
 **Replacement pattern** (reads `ANTHROPIC_BASE_URL`, filters empty string, falls back to hardcoded prod URL, delegates to existing `with_endpoint`):
+
 ```rust
 // Replacement for src/llm/mod.rs:49-57. Filters empty strings (defensive) because
 // .env("ANTHROPIC_BASE_URL", "") semantics vary. with_endpoint() is unchanged.
@@ -330,6 +348,7 @@ pub fn new(api_key: String, model: String) -> Self {
 **Role:** constructor / dead-code removal
 
 **Analog:** The target is `src/converter/mod.rs:47-51`:
+
 ```rust
 // Source: src/converter/mod.rs:47-51 (to delete)
 impl Default for MarkdownConverter {
@@ -340,6 +359,7 @@ impl Default for MarkdownConverter {
 ```
 
 **Surviving pattern** — callers should explicitly construct:
+
 ```rust
 // Source: src/converter/mod.rs:41-45 (the explicit constructor, unchanged)
 impl MarkdownConverter {
@@ -377,6 +397,7 @@ fn config_with_defaults() -> DiagramConfig {
 2. **Acceptable fallback:** inline the literal at each of the 7 sites (CONTEXT.md D-04 explicit block).
 
 **Call-site rewrites** — each of these must change:
+
 - Line 87: `let converter = MarkdownConverter::default();` → `let converter = MarkdownConverter::new(test_diagram_config());`
 - Line 99: `let converter = MarkdownConverter::default();` → `let converter = MarkdownConverter::new(test_diagram_config());`
 - Line 107: `let converter = MarkdownConverter::default();` → `let converter = MarkdownConverter::new(test_diagram_config());`
@@ -386,6 +407,7 @@ fn config_with_defaults() -> DiagramConfig {
 - Line 198: (same) → `let config = test_diagram_config();`
 
 Canonical replacement literal (per CONTEXT.md D-04):
+
 ```rust
 // Source: CONTEXT.md D-04 explicit spec (identical to src/converter/diagrams.rs::config_with_defaults)
 fn test_diagram_config() -> crate::config::DiagramConfig {
@@ -546,6 +568,7 @@ None — every file modification in this phase has a direct in-repo precedent. R
 ## Metadata
 
 **Analog search scope:**
+
 - `src/config.rs` (https guard + DiagramConfig)
 - `src/converter/mod.rs`, `src/converter/tests.rs`, `src/converter/diagrams.rs` (DiagramConfig callers)
 - `src/confluence/client.rs` mod tests (wiremock Confluence template)

@@ -22,6 +22,7 @@ The Rust ecosystem provides strong, opinionated choices for every layer of this 
 For XML, `quick-xml` is the correct choice — it handles both read and write with namespace support, unlike `roxmltree` (read-only) or `xml-rs` (less maintained). Structured output from Claude should use the tool_use API (function calling), not prompt-based JSON extraction, with serde-based deserialization and retry-on-failure matching the existing Python `_generate_structured_with_retry` pattern.
 
 **Core technologies:**
+
 - `tokio` (1.x): Async runtime — required by reqwest; `JoinSet` + `Semaphore` for parallel LLM fan-out
 - `reqwest` (0.12, rustls-tls): HTTP client — used for both Anthropic API and Confluence REST API; single shared client instance
 - `serde` + `serde_json` (1.x): Serialization — all JSON, API types, structured LLM output
@@ -40,6 +41,7 @@ See `.planning/research/STACK.md` for full dependency list, dev dependencies, an
 The core architectural shift replaces "preserve all comments as immutable tokens" with "evaluate each comment independently in parallel." The feature set is well-defined:
 
 **Must have (table stakes):**
+
 - Per-comment context extraction — isolate each `ac:inline-comment-marker` with its surrounding section for focused evaluation
 - Deterministic short-circuit evaluation — exact-match KEEP, deleted-section DROP, unchanged-section KEEP with zero LLM calls
 - Parallel LLM evaluation — fan out one call per ambiguous comment using `futures::buffer_unordered` with semaphore
@@ -48,6 +50,7 @@ The core architectural shift replaces "preserve all comments as immutable tokens
 - Credential loading from `~/.claude/` files with env var override
 
 **Should have (differentiators):**
+
 - KEEP/DROP/RELOCATE verdict model — RELOCATE requires LLM to supply a new anchor text for repositioned comments
 - Orphaned comment report — log which comments were dropped and why, rather than silent removal
 - Cost estimator — calculate expected token usage before execution, prompt for confirmation on large pages
@@ -55,6 +58,7 @@ The core architectural shift replaces "preserve all comments as immutable tokens
 - JSON output mode for machine-readable results (Claude Code skill integration)
 
 **Defer to v2+:**
+
 - RELOCATE verdict support — hardest reassembly case; start with KEEP/DROP only
 - SSE streaming for LLM responses — non-streaming is simpler and sufficient for batch processing
 - Comment thread resolution — out of scope; only inline markers are in scope
@@ -67,6 +71,7 @@ See `.planning/research/FEATURES.md` for full feature dependency graph and prior
 The architecture follows the established Rust pattern of a thin binary over a testable library. All orchestration, conversion, and LLM logic lives in `lib.rs` submodules exposed through async traits (`ConfluenceApi`, `LlmClient`, `DiagramRenderer`). The pipeline uses a builder pattern for the `UpdatePipeline` struct, taking generic trait implementations so tests can inject mocks. The `main.rs` entry point is 3–5 lines: parse args, build runtime, call `confluence_agent::run()`.
 
 **Major components:**
+
 1. `cli/` — clap argument parsing and command dispatch; no business logic
 2. `config/` — credential waterfall loader: CLI flag → `ANTHROPIC_API_KEY` env → `~/.claude/credentials.json` → error
 3. `confluence/` — reqwest-based REST API client (GET page, PUT update, POST attachment); typed serde structs for v1 API
@@ -150,10 +155,12 @@ Based on combined research, the recommended phase structure follows component de
 ### Research Flags
 
 Phases needing deeper research during planning:
+
 - **Phase 2 (Converter):** Spike required to determine feasibility of custom pulldown-cmark Confluence visitor vs. Python subprocess bridge. Outcome determines scope by 1–3 weeks.
 - **Phase 3 (LLM Evaluation):** Verify `~/.claude/credentials.json` format on real installation before coding config module. Verify Anthropic tool_use schema against current API docs.
 
 Phases with standard patterns (safe to skip per-phase research):
+
 - **Phase 1 (Confluence API):** REST API v1 is stable and well-documented. Reqwest patterns are established.
 - **Phase 4 (Distribution):** Cross-compilation and Claude Code skill patterns are established.
 
@@ -179,16 +186,19 @@ Phases with standard patterns (safe to skip per-phase research):
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - Existing Python implementation — direct codebase analysis of `agent.py`, `cli.py`, `confluence.py`, `converter.py`, `llm.py`, `llm_prompts.py`, `models.py`
 - Confluence REST API v1 documentation — `https://developer.atlassian.com/cloud/confluence/rest/v1/` (endpoints verified stable)
 - quick-xml crate documentation — `https://docs.rs/quick-xml/`
 
 ### Secondary (MEDIUM confidence)
+
 - Training data (cutoff ~mid-2025) — Rust ecosystem crate landscape, tokio/reqwest patterns, async architecture best practices
 - Claude Code documentation — `https://docs.anthropic.com/en/docs/claude-code` — credential file location and skill format
 - Anthropic API documentation — `https://docs.anthropic.com/en/api/messages` — Messages API structure, tool_use format, SSE event schema
 
 ### Tertiary (LOW confidence)
+
 - Community crate assessments (`anthropic-rs`, `misanthropic`, `clust`) — status as of mid-2025; verify before dismissing
 - Model pricing and latency estimates — approximate as of early 2025; costs may have changed
 - `~/.claude/` credential file JSON schema — inferred from training data; must be verified against real installation

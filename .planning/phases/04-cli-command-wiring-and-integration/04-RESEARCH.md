@@ -5,6 +5,7 @@
 **Confidence:** HIGH
 
 <user_constraints>
+
 ## User Constraints (from CONTEXT.md)
 
 ### Locked Decisions
@@ -12,6 +13,7 @@
 **D-01:** `--output` is a global flag on the top-level `Cli` struct (same level as `--verbose`). Applies to all subcommands consistently.
 
 **D-02:** JSON output schema per command:
+
 - `update`: `{ success: bool, page_url: String, comments_kept: u32, comments_dropped: u32, error?: String }`
 - `upload`: `{ success: bool, page_url: String, error?: String }`
 - `convert`: `{ success: bool, output_dir: String, files: [String], error?: String }` — lists all files written (storage XML + SVG attachments)
@@ -42,6 +44,7 @@ None — discussion stayed within phase scope.
 </user_constraints>
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -80,6 +83,7 @@ Tracing-subscriber 0.3.23 (already in Cargo.toml) provides everything needed for
 ### No New Dependencies Required
 
 All libraries needed for Phase 4 are already declared in Cargo.toml. The only code changes are:
+
 - `src/cli.rs` — add `OutputFormat` enum and `--output` field to `Cli`
 - `src/lib.rs` — wire all three commands, add output formatting logic
 - `src/main.rs` — add tracing subscriber init before `run()`
@@ -114,6 +118,7 @@ pub enum OutputFormat {
 ```
 
 Add to `Cli`:
+
 ```rust
 /// Output format
 #[arg(long, value_enum, default_value_t = OutputFormat::Human)]
@@ -142,6 +147,7 @@ fn init_tracing(verbose: bool) {
 Call `init_tracing(cli.verbose)` in `main()` before `confluence_agent::run(cli).await`.
 
 Key API notes [VERIFIED: tracing-subscriber 0.3 docs]:
+
 - `.with_writer(std::io::stderr)` — routes all log output to stderr (D-07)
 - `EnvFilter::new("warn")` vs `EnvFilter::new("debug")` — controls verbosity (D-08)
 - Default `fmt()` format is compact; `fmt().pretty()` adds multi-line formatting — either works for `--verbose` (Claude's discretion)
@@ -324,30 +330,35 @@ async fn main() {
 ## Common Pitfalls
 
 ### Pitfall 1: Config::load() Requires Confluence Credentials
+
 **What goes wrong:** `Commands::Convert` is called without CONFLUENCE_* env vars set. If `Config::load()` runs unconditionally at the top of `run()`, it errors before reaching the convert arm.
 **Why it happens:** Config treats Confluence URL/username/token as required fields.
 **How to avoid:** Call `Config::load()` inside the match arms that need it (`Update`, `Upload`), not at the top level. `Convert` arm can run without config entirely.
 **Warning signs:** Integration test for convert fails with "Missing required configuration: CONFLUENCE_URL" when no Confluence env vars are set.
 
 ### Pitfall 2: tracing-subscriber init() Panics on Double Init
+
 **What goes wrong:** If `init_tracing()` is called more than once (e.g., in tests), it panics with "global default already set".
 **Why it happens:** `tracing_subscriber::fmt().init()` sets a global subscriber. Tests that call `run()` directly may each try to init.
 **How to avoid:** Use `try_init()` instead of `init()` in test contexts, or initialize in `main()` only (not in `run()`). Keep subscriber init strictly in `main.rs`.
 **Warning signs:** Test panics with "SetGlobalDefaultError" or "cannot set global default twice".
 
 ### Pitfall 3: AnthropicClient Requires API Key for Update Command
+
 **What goes wrong:** `update` is called without `ANTHROPIC_API_KEY` set. `config.anthropic_api_key` is `Option<String>` — accessing it without checking yields None and AnthropicClient panics or produces a confusing error later.
 **Why it happens:** The config intentionally makes `anthropic_api_key` optional (it's not needed for `upload` or `convert`).
 **How to avoid:** In the `update` arm, explicitly unwrap with a useful error: `config.anthropic_api_key.clone().ok_or_else(|| AppError::Config(ConfigError::Missing { name: "ANTHROPIC_API_KEY" }))?`.
 **Warning signs:** LLM call fails with a reqwest auth error instead of a clear "API key not configured" message.
 
 ### Pitfall 4: Page Title Required for update_page()
+
 **What goes wrong:** `confluence.update_page()` requires a `title` parameter. The update and upload commands receive the page URL, not the title. Title must be fetched from the existing page.
 **Why it happens:** Confluence REST API v1 PUT requires title even when unchanged.
 **How to avoid:** Always use `page.title` from the `get_page()` response when calling `update_page()`. Already handled in `update_page_with_retry()` — check its signature.
 **Warning signs:** 400 error from Confluence API mentioning missing title field.
 
 ### Pitfall 5: update_page_with_retry vs update_page
+
 **What goes wrong:** `update_page_with_retry` in `confluence::client` already handles version-conflict retry. Calling `confluence.update_page()` directly in the update/upload commands skips this retry logic.
 **Why it happens:** Two update paths exist: the trait method and the free function with retry.
 **How to avoid:** Use `update_page_with_retry(&confluence, &page_id, &content, N)` for update and upload commands, not `confluence.update_page()` directly.
@@ -356,6 +367,7 @@ async fn main() {
 Note: Check `update_page_with_retry` signature — it may need `title` parameter too. Read `src/confluence/client.rs` fully before implementing.
 
 ### Pitfall 6: stdout vs stderr Contamination in JSON Mode
+
 **What goes wrong:** Debug `println!()` statements or `tracing::info!()` output appears on stdout, breaking JSON parsing by the calling skill.
 **Why it happens:** Default tracing-subscriber writes to stdout; `println!()` always goes to stdout.
 **How to avoid:** All tracing output on stderr (`.with_writer(std::io::stderr)`); all intermediate status on stderr or suppressed in non-verbose mode; only the final result on stdout.
@@ -498,6 +510,7 @@ Note: `assert_cmd 2` is already in `[dev-dependencies]` — use it for CLI-level
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - `src/cli.rs` — existing Cli struct, Commands enum, --verbose field [VERIFIED: read above]
 - `src/lib.rs` — existing run() function with upload stub showing wiring pattern [VERIFIED: read above]
 - `src/main.rs` — entry point; tracing init placement [VERIFIED: read above]
@@ -511,11 +524,13 @@ Note: `assert_cmd 2` is already in `[dev-dependencies]` — use it for CLI-level
 - `cargo metadata` — resolved versions: tracing-subscriber 0.3.23, clap 4.6.0, serde_json 1.0.149 [VERIFIED: bash output above]
 
 ### Secondary (MEDIUM confidence)
+
 - tracing-subscriber 0.3 builder API (`.with_writer()`, `EnvFilter::new()`) — [ASSUMED based on tracing-subscriber 0.3 documentation patterns; confirmed version 0.3.23 is in lock file]
 
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — all dependencies verified in Cargo.toml and cargo metadata
 - Architecture: HIGH — all component APIs verified by reading source; wiring pattern is direct
 - Pitfalls: HIGH — identified from reading actual Config implementation and existing code patterns

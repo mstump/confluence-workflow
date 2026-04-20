@@ -95,11 +95,13 @@ The repository-root `CLAUDE.md` is **stale** — it describes the project as a P
 **Installation:** All dependencies already present in `Cargo.toml`. No `cargo add` step required.
 
 **Version verification (2026-04-20):**
+
 ```
 wiremock 0.6.5     — latest on crates.io
 assert_cmd 2.2.1   — latest on crates.io
 serial_test 3.4.0  — latest on crates.io
 ```
+
 [VERIFIED: `cargo search` output 2026-04-20]
 
 ## Architecture Patterns
@@ -168,6 +170,7 @@ No structural changes. New tests go in the existing `tests/cli_integration.rs` f
 **When to use:** Every happy-path test for `update` and `upload`.
 
 **Example:**
+
 ```rust
 // Source: src/confluence/client.rs mod tests (test_get_page_200, test_update_page_with_retry_succeeds_on_second_attempt)
 use wiremock::matchers::{header, method, path};
@@ -219,6 +222,7 @@ async fn example_happy_path() {
 **Tradeoff:** Skipping the LLM mock reduces test value — a "happy path" that never hits the LLM doesn't prove the LLM-integration wiring. **Recommended:** Include at least one inline-comment marker in the old page body so the LLM is called, and assert the `wiremock::MockServer::received_requests()` count to prove the LLM was hit. Two complementary tests may be appropriate: `test_update_command_happy_path_no_comments` (fast, verifies plumbing) and `test_update_command_happy_path_with_comments` (slower, verifies LLM path).
 
 **Example (old page body with one comment marker):**
+
 ```rust
 fn page_json_with_comment(id: &str, version: u32) -> serde_json::Value {
     json!({
@@ -240,6 +244,7 @@ fn page_json_with_comment(id: &str, version: u32) -> serde_json::Value {
 **What:** Every deleted `DiagramConfig::default()` / `MarkdownConverter::default()` call is replaced with a minimal inline literal.
 
 **Example (replacement for `src/converter/tests.rs:87` etc.):**
+
 ```rust
 // Source: CONTEXT.md D-04 explicit replacement spec
 let config = crate::config::DiagramConfig {
@@ -258,6 +263,7 @@ let converter = crate::converter::MarkdownConverter::new(config);
 **What:** Small constructor change so that `AnthropicClient::new(api_key, model)` consults `ANTHROPIC_BASE_URL` before falling back to the hardcoded production URL.
 
 **Example:**
+
 ```rust
 // Replacement for src/llm/mod.rs:50-57
 pub fn new(api_key: String, model: String) -> Self {
@@ -276,6 +282,7 @@ pub fn new(api_key: String, model: String) -> Self {
 **What:** Any test that sets or removes a process env var must run serially to avoid races with other tests. `serial_test` already pinned in dev-deps.
 
 **Example:**
+
 ```rust
 // Source: tests/cli_integration.rs:425-477 (test_convert_with_env_var_diagram_paths)
 use serial_test::serial;
@@ -636,6 +643,7 @@ pub fn new(api_key: String, model: String) -> Self {
 | `AnthropicClient` endpoint pinned to prod URL in `new()` | `ANTHROPIC_BASE_URL` env override | Phase 10 (this phase) | Tests no longer need to call `with_endpoint` manually; `AnthropicClient::new()` respects test config. |
 
 **Deprecated/outdated:**
+
 - `DiagramConfig::from_env()` — removed in Phase 10.
 - `impl Default for DiagramConfig` — removed in Phase 10.
 - `impl Default for MarkdownConverter` — removed in Phase 10.

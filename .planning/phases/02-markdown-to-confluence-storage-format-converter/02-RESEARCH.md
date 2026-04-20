@@ -13,6 +13,7 @@ The key architectural risk is XML namespace handling: Confluence storage format 
 **Primary recommendation:** Build a custom pulldown-cmark event-to-string renderer that emits Confluence storage XML directly via string formatting. Use `tokio::process::Command` for PlantUML (jar pipe mode) and Mermaid (mmdc CLI) diagram rendering. Do NOT use quick-xml for output generation -- string building avoids all namespace prefix issues.
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -27,6 +28,7 @@ The key architectural risk is XML namespace handling: Confluence storage format 
 ## Standard Stack
 
 ### Core
+
 | Library | Version | Purpose | Why Standard |
 |---------|---------|---------|--------------|
 | pulldown-cmark | 0.13.3 | Markdown parsing to event stream | De facto Rust Markdown parser; CommonMark + GFM extensions; pull-based iterator model [VERIFIED: cargo search] |
@@ -34,11 +36,13 @@ The key architectural risk is XML namespace handling: Confluence storage format 
 | regex (already in deps) | 1 | Fenced code block language detection, post-processing | Already in workspace [VERIFIED: Cargo.toml] |
 
 ### Supporting
+
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
 | tempfile | 3 | Temp files for mermaid-cli input/output | Mermaid rendering requires file paths, not stdin pipe [ASSUMED] |
 
 ### Alternatives Considered
+
 | Instead of | Could Use | Tradeoff |
 |------------|-----------|----------|
 | pulldown-cmark | comrak 0.52 | comrak is full GFM; pulldown-cmark is lighter, more composable iterator model, better for custom output |
@@ -46,12 +50,14 @@ The key architectural risk is XML namespace handling: Confluence storage format 
 | Custom visitor | md2conf (Python bridge) | Fallback option if spike fails; adds Python runtime dependency (contradicts REQUIREMENTS out-of-scope) |
 
 **Installation:**
+
 ```bash
 cargo add pulldown-cmark@0.13.3
 cargo add tempfile@3 --dev  # Or as regular dep if needed at runtime
 ```
 
 **Version verification:**
+
 - pulldown-cmark: 0.13.3 [VERIFIED: cargo search 2026-04-10]
 - quick-xml: 0.39.2 (NOT recommended for output; noted for reference) [VERIFIED: cargo search 2026-04-10]
 - tempfile: latest 3.x [ASSUMED -- standard, stable API]
@@ -59,6 +65,7 @@ cargo add tempfile@3 --dev  # Or as regular dep if needed at runtime
 ## Architecture Patterns
 
 ### Recommended Project Structure
+
 ```
 src/
 ├── converter/
@@ -73,9 +80,11 @@ src/
 ```
 
 ### Pattern 1: Pull-Parser Event Visitor
+
 **What:** Iterate pulldown-cmark events, match on `Start(tag)` / `End(tag)` / `Text` / `Code` etc., and write corresponding Confluence XML to a `String` buffer.
 **When to use:** This is the core conversion pattern for CONV-01.
 **Example:**
+
 ```rust
 // Source: pulldown-cmark docs + Confluence storage format reference
 use pulldown_cmark::{Parser, Event, Tag, TagEnd, Options, CodeBlockKind};
@@ -165,9 +174,11 @@ impl ConfluenceRenderer {
 ```
 
 ### Pattern 2: Confluence Code Block Macro
+
 **What:** Map fenced code blocks to `ac:structured-macro name="code"`.
 **When to use:** Every fenced code block that is not a diagram.
 **Example:**
+
 ```rust
 // Source: Confluence Storage Format docs
 // https://confluence.atlassian.com/doc/confluence-storage-format-790796544.html
@@ -189,9 +200,11 @@ fn emit_code_block(&mut self) {
 ```
 
 ### Pattern 3: Image Attachment Reference
+
 **What:** Map Markdown images to `ac:image` + `ri:attachment`.
 **When to use:** Every `![alt](src)` image reference, and diagram SVG outputs.
 **Example:**
+
 ```rust
 // Source: Confluence Storage Format docs
 // https://confluence.atlassian.com/doc/confluence-storage-format-790796544.html
@@ -205,8 +218,10 @@ fn emit_image(&mut self, filename: &str, alt: &str) {
 ```
 
 ### Pattern 4: Table Rendering
+
 **What:** Map GFM tables to standard HTML table elements (Confluence accepts standard `<table>` markup).
 **Example:**
+
 ```rust
 // Confluence accepts standard XHTML tables
 // Event::Start(Tag::Table(alignments)) -> <table>
@@ -217,9 +232,11 @@ fn emit_image(&mut self, filename: &str, alt: &str) {
 ```
 
 ### Pattern 5: Diagram Rendering via Async Subprocess
+
 **What:** Render PlantUML/Mermaid fenced blocks to SVG via subprocess, return as attachments.
 **When to use:** CONV-03 and CONV-04.
 **Example:**
+
 ```rust
 // PlantUML: pipe mode (stdin -> stdout)
 use tokio::process::Command;
@@ -249,8 +266,10 @@ async fn render_mermaid(content: &str, mmdc_path: &str) -> Result<Vec<u8>, Conve
 ```
 
 ### Pattern 6: Converter Trait (CONV-05)
+
 **What:** Trait boundary for testability, following Phase 1's `ConfluenceApi` pattern.
 **Example:**
+
 ```rust
 use async_trait::async_trait;
 
@@ -272,6 +291,7 @@ pub trait Converter: Send + Sync {
 ```
 
 ### Anti-Patterns to Avoid
+
 - **Using quick-xml Writer for output:** The `ac:` and `ri:` namespace prefixes are not declared in Confluence storage fragments. quick-xml will either reject them or require wrapping in a synthetic root with `xmlns:ac` / `xmlns:ri` declarations. String building is simpler and produces correct output.
 - **Parsing the output XML for validation:** The output is a fragment, not a well-formed XML document. Parsing it back with an XML parser will fail on namespace prefixes. Validate by uploading to Confluence or using substring assertions in tests.
 - **Regex-based Markdown parsing:** The Python converter uses regex for some preprocessing (code blocks, diagrams). The Rust version should rely on pulldown-cmark events for all structural parsing -- regex is fragile for nested/edge-case Markdown.
@@ -293,36 +313,42 @@ pub trait Converter: Send + Sync {
 ## Common Pitfalls
 
 ### Pitfall 1: Undeclared XML Namespace Prefixes
+
 **What goes wrong:** Using an XML library (quick-xml, xml-rs) to generate output causes errors because `ac:` and `ri:` prefixes have no `xmlns` declarations in the fragment.
 **Why it happens:** Confluence storage format is technically malformed XML -- it uses namespace prefixes without declaring them, relying on the server to resolve them.
 **How to avoid:** Use string-based output generation (`write!` / `push_str` to a `String`). Never parse the output fragment with a strict XML parser.
 **Warning signs:** Errors mentioning "undeclared namespace prefix" or "unbound prefix" during output generation or validation.
 
 ### Pitfall 2: CDATA End Sequence in Code Blocks
+
 **What goes wrong:** Code content containing the literal string `]]>` breaks CDATA sections.
 **Why it happens:** `]]>` is the CDATA closing delimiter. If user code contains it, the XML becomes malformed.
 **How to avoid:** Split CDATA sections at `]]>` boundaries: `<![CDATA[content with ]]]]><![CDATA[> more content]]>`. Alternatively, escape `]]>` as `]]]]><![CDATA[>` within the CDATA.
 **Warning signs:** Code blocks containing `]]>` (rare but possible in XML/XSLT documentation).
 
 ### Pitfall 3: HTML Entities vs XML Escaping
+
 **What goes wrong:** Generating `&nbsp;` or other HTML entities in Confluence storage format. Confluence expects XML, where only `&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;` are predefined.
 **Why it happens:** Copying HTML output patterns into the Confluence renderer.
 **How to avoid:** Use only the 5 XML predefined entities. For non-breaking spaces, use the Unicode character `\u{00A0}` directly.
 **Warning signs:** Confluence editor showing raw `&nbsp;` text or parse errors.
 
 ### Pitfall 4: First H1 Removal
+
 **What goes wrong:** The first `<h1>` in the output duplicates the Confluence page title (which is stored separately).
 **Why it happens:** Markdown files typically start with `# Title` which becomes `<h1>Title</h1>`, but Confluence pages already have a title field.
 **How to avoid:** Skip the first `Heading(H1)` event during rendering (the Python converter does `re.sub(r"<h1>.*?</h1>\s*", "", storage_format, count=1)`).
 **Warning signs:** Page title appearing twice when viewing the page.
 
 ### Pitfall 5: PlantUML Jar Path vs CLI
+
 **What goes wrong:** Assuming PlantUML is always a JAR file when it might be installed as a CLI wrapper (e.g., `plantuml` from Homebrew).
 **Why it happens:** The Python converter hardcodes `java -jar <path>` invocation.
 **How to avoid:** Support two modes: (1) `plantuml` CLI command (Homebrew/package manager), (2) `java -jar <path>` (manual installation). Check config for which to use. On this machine, `/opt/homebrew/bin/plantuml` exists as a CLI wrapper.
 **Warning signs:** "Java not found" errors when PlantUML is installed via package manager.
 
 ### Pitfall 6: Mermaid CLI Puppeteer Config
+
 **What goes wrong:** `mmdc` fails with Chromium sandbox errors or timeouts on headless environments.
 **Why it happens:** mermaid-cli requires Puppeteer/Chromium and may need `--puppeteerConfigFile` for sandbox configuration.
 **How to avoid:** Make the puppeteer config path configurable (the Python converter has `mermaid_puppeteer_config` setting). Pass `--no-sandbox` via puppeteer config if needed.
@@ -438,6 +464,7 @@ This behavior should be replicated in the Rust converter for parity.
 | `java -jar plantuml.jar` only | `plantuml` CLI wrapper (Homebrew) | Ongoing | Must support both invocation styles |
 
 **Deprecated/outdated:**
+
 - pulldown-cmark < 0.10: `End(Tag)` variant was changed to `End(TagEnd)` -- examples from pre-2023 are syntactically wrong [VERIFIED: docs.rs]
 - `md2conf` Python library: Still maintained but being replaced in this project by native Rust [ASSUMED]
 
@@ -494,6 +521,7 @@ This behavior should be replicated in the Rust converter for parity.
 ## Validation Architecture
 
 ### Test Framework
+
 | Property | Value |
 |----------|-------|
 | Framework | cargo test (built-in) + insta 1.x for snapshot testing |
@@ -502,6 +530,7 @@ This behavior should be replicated in the Rust converter for parity.
 | Full suite command | `cargo test` |
 
 ### Phase Requirements to Test Map
+
 | Req ID | Behavior | Test Type | Automated Command | File Exists? |
 |--------|----------|-----------|-------------------|-------------|
 | CONV-01 | Markdown headings/code/tables/links/images -> storage XML | unit + snapshot | `cargo test converter::renderer::tests -q` | Wave 0 |
@@ -511,11 +540,13 @@ This behavior should be replicated in the Rust converter for parity.
 | CONV-05 | Mock Converter trait compiles and works | unit | `cargo test converter::tests::test_mock_converter -q` | Wave 0 |
 
 ### Sampling Rate
+
 - **Per task commit:** `cargo test --lib converter -q`
 - **Per wave merge:** `cargo test`
 - **Phase gate:** Full suite green before `/gsd-verify-work`
 
 ### Wave 0 Gaps
+
 - [ ] `src/converter/mod.rs` -- Converter trait definition + ConvertResult type
 - [ ] `src/converter/renderer.rs` -- Renderer struct with unit tests + insta snapshots
 - [ ] `src/converter/diagrams.rs` -- Diagram rendering with integration tests
@@ -545,6 +576,7 @@ This behavior should be replicated in the Rust converter for parity.
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - [pulldown-cmark docs.rs](https://docs.rs/pulldown-cmark/latest/pulldown_cmark/) -- Event enum, Tag enum, Options flags [VERIFIED]
 - [Confluence Storage Format](https://confluence.atlassian.com/doc/confluence-storage-format-790796544.html) -- Official element reference [CITED]
 - [Confluence Code Block Macro](https://confluence.atlassian.com/display/CONF57/Code+Block+Macro) -- ac:structured-macro code format [CITED]
@@ -552,16 +584,19 @@ This behavior should be replicated in the Rust converter for parity.
 - Existing Rust codebase (`src/`, `Cargo.toml`) -- Phase 1 patterns and dependencies [VERIFIED: codebase]
 
 ### Secondary (MEDIUM confidence)
+
 - [pulldown-cmark GitHub](https://github.com/pulldown-cmark/pulldown-cmark) -- Usage patterns, custom renderer approach [CITED]
 - [Confluence Storage Format Preview](https://thomasrohde.github.io/publish-confluence/preview/~thro/7._Confluence_storage_format.html) -- Additional element examples [CITED]
 - cargo search results for crate versions [VERIFIED: 2026-04-10]
 
 ### Tertiary (LOW confidence)
+
 - WebSearch results for quick-xml namespace handling -- general guidance, not verified against specific version [LOW]
 
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH -- pulldown-cmark is the clear choice; versions verified via cargo search
 - Architecture: HIGH -- event visitor pattern is well-documented; string-based output avoids XML namespace issues
 - Pitfalls: HIGH -- namespace prefix issue is well-known; CDATA splitting is standard XML practice

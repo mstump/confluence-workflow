@@ -36,6 +36,7 @@ Two warnings were identified: an unbounded concurrency value that could cause re
 **File:** `src/config.rs:127-130`
 **Issue:** `ANTHROPIC_CONCURRENCY` is parsed from the environment with no upper bound. Any positive integer is accepted, including arbitrarily large values like `99999`. Depending on how this value is consumed downstream (task spawning, semaphore permits), it could cause resource exhaustion or unexpected behavior.
 **Fix:** Add a reasonable cap after parsing:
+
 ```rust
 let anthropic_concurrency = std::env::var("ANTHROPIC_CONCURRENCY")
     .ok()
@@ -49,6 +50,7 @@ let anthropic_concurrency = std::env::var("ANTHROPIC_CONCURRENCY")
 **File:** `src/config.rs:93`
 **Issue:** `confluence_url.starts_with("https://")` performs a byte-exact comparison. A URL like `HTTPS://example.atlassian.net` or `Https://example.atlassian.net` would fail this check with the error "must start with https://", which is confusing because the URL is conceptually valid. Real-world copy-paste from browsers or documentation may produce uppercase scheme strings.
 **Fix:**
+
 ```rust
 if !confluence_url.to_ascii_lowercase().starts_with("https://") {
     return Err(ConfigError::Invalid {
@@ -65,6 +67,7 @@ if !confluence_url.to_ascii_lowercase().starts_with("https://") {
 **File:** `src/config.rs:31-34`
 **Issue:** If `DIAGRAM_TIMEOUT` is set to a non-numeric value (e.g., `"thirty"`), the `.parse().ok()` silently discards the parse error and falls back to 30 seconds. The user gets no indication their configuration was ignored. The same pattern applies to `ANTHROPIC_CONCURRENCY` at line 127-130.
 **Fix:** Consider logging a warning on parse failure so misconfiguration is visible:
+
 ```rust
 timeout_secs: std::env::var("DIAGRAM_TIMEOUT")
     .ok()
@@ -93,9 +96,11 @@ timeout_secs: std::env::var("DIAGRAM_TIMEOUT")
 **File:** `src/config.rs:125`
 **Issue:** The default Anthropic model `"claude-haiku-4-5-20251001"` is hardcoded as a string literal. As model names change over time this will require a source code edit rather than an environment variable update. There is no compile-time constant or central location for this value.
 **Fix:** Define it as a named constant near the top of the module for easier discoverability and future maintenance:
+
 ```rust
 const DEFAULT_ANTHROPIC_MODEL: &str = "claude-haiku-4-5-20251001";
 ```
+
 Then reference it at line 125: `.unwrap_or_else(|| DEFAULT_ANTHROPIC_MODEL.to_string())`
 
 ---

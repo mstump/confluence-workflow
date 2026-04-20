@@ -12,6 +12,7 @@ researched: 2026-04-20
 **Confidence:** HIGH
 
 <user_constraints>
+
 ## User Constraints (from CONTEXT.md)
 
 ### Locked Decisions
@@ -36,6 +37,7 @@ None — CONTEXT.md states discussion stayed within phase scope.
 </user_constraints>
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -182,7 +184,7 @@ After (target state, SCAF-03 closed):
 | File | Responsibility After Refactor |
 |------|-------------------------------|
 | `src/cli.rs` | Unchanged. Clap-derive `Cli` struct already has `plantuml_path`/`mermaid_path` with `#[arg(long, env = "...")]`. The fields already carry CLI-or-env resolved values when `run()` is called. |
-| `src/config.rs` | **Changed.** Delete `CliOverrides` struct. Change `Config::load(&CliOverrides)` → `Config::load(&Cli)` (or take the individual `Option<String>` fields). Inside `load_with_home`, replace `overrides.plantuml_path.as_deref()` with `cli.plantuml_path.as_deref()`; remove the `resolve_optional` env-var lookup for `PLANTUML_PATH`/`MERMAID_PATH` because clap already resolved those — diagram paths become a simple `cli.plantuml_path.clone().unwrap_or_else(|| "plantuml".to_string())`. Credential fields (`confluence_url`, `confluence_username`, `confluence_api_token`, `anthropic_api_key`) keep the `resolve_required`/`resolve_optional` path **but** also skip the env-var step since clap already resolved it — they fall through to `~/.claude/settings.json` when `cli.<field>` is `None`. |
+| `src/config.rs` | **Changed.** Delete `CliOverrides` struct. Change `Config::load(&CliOverrides)` → `Config::load(&Cli)` (or take the individual `Option<String>` fields). Inside `load_with_home`, replace `overrides.plantuml_path.as_deref()` with `cli.plantuml_path.as_deref()`; remove the `resolve_optional` env-var lookup for `PLANTUML_PATH`/`MERMAID_PATH` because clap already resolved those — diagram paths become a simple `cli.plantuml_path.clone().unwrap_or_else(|| "plantuml".to_string())`. Credential fields (`confluence_url`,`confluence_username`,`confluence_api_token`,`anthropic_api_key`) keep the`resolve_required`/`resolve_optional` path **but** also skip the env-var step since clap already resolved it — they fall through to `~/.claude/settings.json` when `cli.<field>` is `None`. |
 | `src/lib.rs` | **Changed.** Delete all three `CliOverrides { ... }` struct-literal constructions (update arm, upload arm). Replace with `Config::load(&cli)?` — passing `&cli` by reference so the update arm can later use `cli.command` (or, since update/upload arms destructure `cli.command` first, pass the needed fields by value / clone). Rewrite convert arm: drop `dotenvy::dotenv().ok()`, drop `std::env::var("PLANTUML_PATH").ok()` / `std::env::var("MERMAID_PATH").ok()`, build `DiagramConfig` from `cli.plantuml_path` and `cli.mermaid_path` directly with `unwrap_or_else` defaults. Keep `mermaid_puppeteer_config` and `timeout_secs` as direct `std::env::var` reads (they have no CLI flags). |
 | `tests/cli_integration.rs` | **Changed.** Add a new test `test_convert_with_env_var_diagram_paths` (per D-06) that sets `PLANTUML_PATH`/`MERMAID_PATH` via `cmd.env()` and omits the `--plantuml-path`/`--mermaid-path` flags — asserts convert succeeds (same shape as `test_convert_with_diagram_path_flags` on lines 348–388, but exercising the env-var tier). |
 | `src/config.rs` tests | **Changed (mechanical).** Every test that constructs `CliOverrides { ... }` must change to construct `Cli { ... }` (with `command: Commands::Convert { ... }` or similar dummy). Alternative: extract the field subset into a function argument so tests don't need a full `Cli` — but CONTEXT.md says "update tests as needed" (Claude's discretion). |

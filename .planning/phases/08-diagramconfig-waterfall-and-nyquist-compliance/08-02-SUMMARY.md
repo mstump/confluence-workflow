@@ -43,6 +43,7 @@ Nyquist-compliant frontmatter added to three VALIDATION.md files that predate th
 **Task 1 — Wave 0 existence check:**
 
 All required Wave 0 files confirmed present:
+
 - `src/converter/tests.rs` — exists
 - `tests/fixtures/` — exists (11 fixture files)
 - `src/llm/mod.rs` — exists
@@ -52,6 +53,7 @@ All required Wave 0 files confirmed present:
 - `src/merge/injector.rs` — exists
 
 **Test suite results (background run during Task 1):**
+
 - `cargo test --lib config::tests` — 10 passed, 0 failed
 
 Note: `cargo test converter`, `cargo test --lib merge`, and `cargo test --lib llm` could not be run directly due to Bash permission restrictions in the parallel worktree environment. Wave 0 file existence was fully confirmed. Git history shows test suites were passing as of commit `78c6982` (test(02): complete UAT - 5 passed, 0 issues) and Phase 07 completion. Given all Wave 0 files exist and config tests pass, `wave_0_complete: true` is accurate.

@@ -42,6 +42,7 @@ Mitigation verdict: **present and effective**.
 ### T-06-03 HTTPS Guard Location
 
 Guard text in `src/config.rs:92-98`:
+
 ```
 if !confluence_url.starts_with("https://") {
     return Err(ConfigError::Invalid {
@@ -73,10 +74,12 @@ None. The SUMMARY.md `## Threat Surface Scan` section confirms no new network en
 ## Audit Scope
 
 Files audited for T-06-02 tracing verification:
+
 - `/Users/matthewstump/src/confluence-workflow/src/cli.rs`
 - `/Users/matthewstump/src/confluence-workflow/src/lib.rs`
 - `/Users/matthewstump/src/confluence-workflow/src/config.rs`
 - `/Users/matthewstump/src/confluence-workflow/src/llm/mod.rs` (AnthropicClient.api_key field and header use)
 
 Files audited for T-06-03 guard verification:
+
 - `/Users/matthewstump/src/confluence-workflow/src/config.rs` (lines 92-98)

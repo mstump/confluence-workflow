@@ -30,6 +30,7 @@ Added crates.io packaging metadata to `Cargo.toml` and replaced the GPL-3.0 `LIC
 ## Key Files
 
 ### Modified
+
 - `Cargo.toml` — crates.io metadata added to `[package]`
 - `LICENSE` — replaced with MIT license text
 

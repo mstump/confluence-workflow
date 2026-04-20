@@ -70,14 +70,14 @@ confluence-agent convert doc.md ./output
 
 ### Environment variables
 
-| Variable | Purpose |
-| --- | --- |
-| `ANTHROPIC_API_KEY` | Required for LLM pipeline |
-| `ANTHROPIC_BASE_URL` | Override LLM endpoint (used in tests) |
-| `CONFLUENCE_URL` | Base URL (alternative to CLI flag) |
-| `CONFLUENCE_USERNAME` | Atlassian account email |
-| `CONFLUENCE_API_TOKEN` | Atlassian API token |
-| `PLANTUML_PATH` | Path to `plantuml` binary (default: `plantuml`) |
-| `MERMAID_PATH` | Path to `mmdc` binary (default: `mmdc`) |
-| `DIAGRAM_TIMEOUT` | Subprocess timeout seconds (default: 30) |
+| Variable                | Purpose                                                 |
+| ----------------------- | ------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`     | Required for LLM pipeline                               |
+| `ANTHROPIC_BASE_URL`    | Override LLM endpoint (used in tests)                   |
+| `CONFLUENCE_URL`        | Base URL (alternative to CLI flag)                      |
+| `CONFLUENCE_USERNAME`   | Atlassian account email                                 |
+| `CONFLUENCE_API_TOKEN`  | Atlassian API token                                     |
+| `PLANTUML_PATH`         | Path to `plantuml` binary (default: `plantuml`)         |
+| `MERMAID_PATH`          | Path to `mmdc` binary (default: `mmdc`)                 |
+| `DIAGRAM_TIMEOUT`       | Subprocess timeout seconds (default: 30)                |
 | `ANTHROPIC_CONCURRENCY` | Max parallel LLM requests (default: 5, min: 1, max: 50) |

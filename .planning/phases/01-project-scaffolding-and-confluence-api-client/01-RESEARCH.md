@@ -13,6 +13,7 @@ Phase 1 establishes the Rust workspace from scratch and delivers a working `uplo
 **Primary recommendation:** Use reqwest 0.13 (not 0.12 as prior research assumed -- 0.13 was released with breaking changes including `rustls-tls` renamed to `rustls`). Build the Confluence client directly against reqwest with Basic Auth (email + API token base64-encoded). Implement retry-on-409 from day one with re-fetch-then-retry semantics.
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -89,6 +90,7 @@ The prior research (STACK.md) recommended reqwest 0.12. The registry now shows *
 | dotenvy | figment | figment is more powerful but overkill for simple env var loading |
 
 **Installation:**
+
 ```bash
 cargo add tokio --features full
 cargo add reqwest --features json,multipart,rustls
@@ -141,6 +143,7 @@ CONFLUENCE_API_TOKEN=ATATT3xFfGF0...
 ```
 
 **Waterfall order:**
+
 1. CLI flags (`--confluence-url`, `--confluence-username`, `--confluence-token`)
 2. Environment variables (`CONFLUENCE_URL`, `CONFLUENCE_USERNAME`, `CONFLUENCE_API_TOKEN`)
 3. `.env` file in current directory (via `dotenvy`)
@@ -279,30 +282,35 @@ pub fn extract_page_id(url: &str) -> Result<String, ConfluenceError> {
 ## Common Pitfalls
 
 ### Pitfall 1: reqwest 0.13 Feature Flag Changes
+
 **What goes wrong:** Using `rustls-tls` feature flag (which was the name in 0.12) causes a compile error in 0.13.
 **Why it happens:** reqwest 0.13 renamed `rustls-tls` to `rustls`.
 **How to avoid:** Use `features = ["json", "multipart", "rustls"]` in Cargo.toml.
 **Warning signs:** Compile error about unknown feature `rustls-tls`.
 
 ### Pitfall 2: Confluence 409 Version Conflict
+
 **What goes wrong:** Fetching page version N, then updating with N+1 fails because someone edited the page between fetch and update.
 **Why it happens:** Confluence uses optimistic concurrency -- version must be exactly `current + 1`.
 **How to avoid:** Implement retry loop: on 409, re-fetch page (get new version), retry update with new version + 1. Max 3 retries.
 **Warning signs:** 409 HTTP status from PUT endpoint.
 
 ### Pitfall 3: Missing X-Atlassian-Token Header on Attachment Upload
+
 **What goes wrong:** Attachment upload returns 403 Forbidden.
 **Why it happens:** Confluence requires `X-Atlassian-Token: nocheck` header to bypass XSRF protection on attachment endpoints. [CITED: Atlassian REST API docs]
 **How to avoid:** Always set this header on POST to `/child/attachment`.
 **Warning signs:** 403 on attachment upload that works for page updates.
 
 ### Pitfall 4: Confluence Base URL Normalization
+
 **What goes wrong:** Double-slash in URL path (e.g., `https://domain.atlassian.net/wiki//rest/api/...`).
 **Why it happens:** User provides URL with trailing slash, code appends `/rest/api/...`.
 **How to avoid:** `base_url.trim_end_matches('/')` in client constructor.
 **Warning signs:** 404 errors on API calls.
 
 ### Pitfall 5: reqwest 0.13 query/form Features Disabled by Default
+
 **What goes wrong:** `.query()` or `.form()` methods not available on RequestBuilder.
 **Why it happens:** In reqwest 0.13, `query` and `form` are now opt-in features [VERIFIED: reqwest CHANGELOG].
 **How to avoid:** This phase does not need `query` or `form` features -- JSON body and multipart are sufficient. If needed later, add `features = ["query"]`.
@@ -619,6 +627,7 @@ pub enum ConfluenceError {
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - Machine inspection of `~/.claude/` directory: no credential files exist [VERIFIED: `ls -la ~/.claude/`, `find` search]
 - Machine inspection of `.env` file: Confluence credentials stored as `CONFLUENCE_URL`, `CONFLUENCE_USERNAME`, `CONFLUENCE_API_TOKEN` [VERIFIED: direct file read]
 - Crate versions verified against cargo registry: reqwest 0.13.2, clap 4.6.0, tokio 1.51.1, serde 1.0.228, thiserror 2.0.18, anyhow 1.0.102, dirs 6.0.0, dotenvy 0.15.7, base64 0.22.1, async-trait 0.1.89, wiremock 0.6.5 [VERIFIED: `cargo search`]
@@ -627,15 +636,18 @@ pub enum ConfluenceError {
 - Confluence REST API v1 docs: endpoints and authentication [CITED: developer.atlassian.com/cloud/confluence/rest/v1/]
 
 ### Secondary (MEDIUM confidence)
+
 - Confluence 409 behavior on version conflict [CITED: Atlassian REST API docs, partially verified via WebFetch]
 - X-Atlassian-Token: nocheck header requirement [CITED: Atlassian docs + prior research PITFALLS.md]
 
 ### Tertiary (LOW confidence)
+
 - None -- all critical claims verified against machine state or registry
 
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH -- all versions verified against cargo registry
 - Architecture: HIGH -- patterns derived from Python source + standard Rust practices
 - Pitfalls: HIGH -- reqwest 0.13 breaking changes verified; Confluence API behavior cited from docs

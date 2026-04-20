@@ -37,6 +37,7 @@ Reviewed distribution infrastructure (GitHub Actions release workflow, Cargo.tom
 **Issue:** Third-party actions are pinned to floating major version tags (`@v1`, `@v2`, `@v4`) rather than immutable commit SHAs. If a tag is silently moved (intentionally or via a compromised account), the workflow will execute different code without any visible diff. This is a common supply chain attack vector for CI/CD pipelines.
 
 Affected lines:
+
 - Line 35: `actions/checkout@v4`
 - Line 38: `houseabsolute/actions-rust-cross@v1`
 - Line 51: `actions/upload-artifact@v4`
@@ -44,6 +45,7 @@ Affected lines:
 - Line 65: `softprops/action-gh-release@v2`
 
 **Fix:** Pin each action to a full commit SHA. Example:
+
 ```yaml
 # Before
 - uses: houseabsolute/actions-rust-cross@v1
@@ -51,6 +53,7 @@ Affected lines:
 # After — pin to a specific commit SHA
 - uses: houseabsolute/actions-rust-cross@65fe0df7dd8169d1b5af6d362c13c0a2e71dc560  # v0.2.7
 ```
+
 Run `gh api repos/houseabsolute/actions-rust-cross/git/refs/tags/v1` to resolve the current SHA for each action.
 
 ---
@@ -61,6 +64,7 @@ Run `gh api repos/houseabsolute/actions-rust-cross/git/refs/tags/v1` to resolve 
 **Issue:** The top-level `permissions: contents: write` applies to all jobs in the workflow, including the three `build` matrix jobs. Those jobs only compile and upload artifacts — they do not need write access to the repository. Only the `release` job (which calls `action-gh-release`) requires `contents: write`. Granting excess permissions violates the principle of least privilege and increases blast radius if any build-step action is compromised.
 
 **Fix:** Move the permission to job level, scoping it only where needed:
+
 ```yaml
 # Remove the top-level permissions block entirely, then add to the release job:
 jobs:
@@ -81,6 +85,7 @@ jobs:
 **Issue:** The Linux build job explicitly pins to `ubuntu-24.04` (line 29), but the `release` job uses `ubuntu-latest` (line 59). `ubuntu-latest` is a floating label that GitHub updates when a new LTS is promoted. This means the job that downloads and publishes artifacts may run on a different OS version than expected. For consistency and reproducibility, pin the release job to the same explicit version.
 
 **Fix:**
+
 ```yaml
 release:
   needs: build
@@ -93,13 +98,16 @@ release:
 
 **File:** `skills/confluence-update/SKILL.md:14`, `skills/confluence-upload/SKILL.md:14`
 **Issue:** Both skill command templates use `$0` as the first positional argument:
+
 ```bash
 confluence-agent update "$0" "$1" --output json
 confluence-agent upload "$0" "$1" --output json
 ```
+
 In POSIX shells, `$0` is the name of the executing script or shell, not the first user-supplied argument. User arguments begin at `$1`. If the Claude Code skill system performs literal string substitution before handing off to bash, `$0` is used as a template placeholder and is intentional. However, if the system evaluates the bash snippet directly in a subshell, `$0` will expand to the shell binary path (e.g., `/bin/bash`) rather than the markdown file path, causing a silent wrong-argument bug.
 
 Review the Claude Code skill argument substitution specification. If substitution is literal (template-style), this is fine. If the snippet runs in an evaluated shell context, change to:
+
 ```bash
 # If shell-evaluated (standard bash semantics):
 confluence-agent update "$1" "$2" --output json
@@ -113,6 +121,7 @@ confluence-agent update "$1" "$2" --output json
 **Issue:** The failure hint says "suggest checking credentials (CONFLUENCE_API_TOKEN, ANTHROPIC_API_KEY)". Per CLAUDE.md, the project supports both OpenAI (`OPENAI_API_KEY`) and Google (`GOOGLE_API_KEY`) as LLM providers. Users running the Google Gemini backend will not see their key mentioned and may be confused about what to check.
 
 **Fix:** Broaden the credential hint:
+
 ```
 - On failure: show the error message and suggest checking credentials
   (CONFLUENCE_API_TOKEN plus one of: ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY

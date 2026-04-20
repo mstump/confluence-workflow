@@ -91,6 +91,7 @@ None. All must-haves are verifiable programmatically via grep and `cargo test`.
 ### Gaps Summary
 
 No gaps. All 10 must-haves verified. All three roadmap success criteria satisfied:
+
 1. `test_upload_command_happy_path` no longer `#[ignore]`, passes — VERIFIED
 2. Passing integration test for `update` command end-to-end with mocked Confluence + LLM — VERIFIED
 3. `DiagramConfig::from_env()` removed; `cargo build` clean — VERIFIED

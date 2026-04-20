@@ -105,6 +105,7 @@ No discretion areas specified -- all decisions are locked.
 | regex for XML extraction | `quick-xml` parser | Confluence storage XML uses `ac:` prefixes without namespace declarations -- not well-formed XML; regex is pragmatic (per CONTEXT.md decision) |
 
 **Cargo.toml changes:**
+
 ```toml
 # Modify existing tokio line to add "sync":
 tokio = { version = "1.51", features = ["rt-multi-thread", "macros", "process", "time", "sync"] }
@@ -169,11 +170,13 @@ struct Message {
 ```
 
 **Required HTTP headers:**
+
 ```
 x-api-key: <ANTHROPIC_API_KEY>
 anthropic-version: 2023-06-01
 content-type: application/json
 ```
+
 [VERIFIED: Anthropic official docs -- https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview]
 
 ### Pattern 2: Parsing tool_use Response
@@ -452,6 +455,7 @@ fn extract_markers(content: &str) -> Vec<CommentMarker> {
   }]
 }
 ```
+
 [VERIFIED: Anthropic docs -- tool_choice type "tool" forces tool use]
 
 ### Expected Successful Response
@@ -471,6 +475,7 @@ fn extract_markers(content: &str) -> Vec<CommentMarker> {
   ]
 }
 ```
+
 [VERIFIED: Anthropic docs -- response format with stop_reason and content blocks]
 
 ### Error Types to Add
@@ -556,6 +561,7 @@ fn extract_sections(html: &str) -> Vec<Section> {
 | tool_use beta header required | tool_use is GA (no beta header) | 2024 | Simpler request headers |
 
 **Deprecated/outdated:**
+
 - `anthropic-beta: tools-2024-04-04` header: No longer needed; tool_use is GA [VERIFIED: Anthropic docs -- no beta header in current examples]
 
 ## Assumptions Log
@@ -590,6 +596,7 @@ fn extract_sections(html: &str) -> Vec<Section> {
 **Missing dependencies with no fallback:** None -- all are addable via Cargo.toml.
 
 **Missing dependencies with fallback:**
+
 - `rand` crate: If avoiding a new dependency is preferred, jitter can be approximated using `std::time::SystemTime::now()` nanoseconds modulo. However, `rand` is a standard Rust crate and the cleaner approach.
 
 ## Validation Architecture
@@ -657,6 +664,7 @@ fn extract_sections(html: &str) -> Vec<Section> {
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - [Anthropic Tool Use Overview](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview) -- API endpoint, headers, request format
 - [Anthropic Define Tools](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools) -- Tool definition schema, tool_choice parameter
 - [Anthropic Handle Tool Calls](https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls) -- Response parsing, tool_use content blocks
@@ -666,15 +674,18 @@ fn extract_sections(html: &str) -> Vec<Section> {
 - `src/confluence_agent/agent.py` lines 91-115 -- Python comment extraction regex patterns
 
 ### Secondary (MEDIUM confidence)
+
 - [Rust Concurrency Patterns (OneSignal)](https://onesignal.com/blog/rust-concurrency-patterns/) -- Semaphore patterns
 - [backoff crate](https://github.com/ihrwein/backoff) -- Alternative retry approach (decided against)
 
 ### Tertiary (LOW confidence)
+
 - None
 
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH -- all libraries already in Cargo.toml except tokio sync feature and rand
 - Architecture: HIGH -- module layout locked in CONTEXT.md, trait patterns established in Phases 1-2
 - Pitfalls: HIGH -- verified against official docs and codebase patterns

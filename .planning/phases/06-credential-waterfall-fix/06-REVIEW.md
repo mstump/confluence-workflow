@@ -132,6 +132,6 @@ This keeps the failure non-fatal (correct — the file is optional) while ensuri
 
 ---
 
-_Reviewed: 2026-04-13_
-_Reviewer: Claude (gsd-code-reviewer)_
-_Depth: standard_
+*Reviewed: 2026-04-13*
+*Reviewer: Claude (gsd-code-reviewer)*
+*Depth: standard*

@@ -9,6 +9,7 @@
 ## Domain Boundary
 
 This phase delivers two tightly coupled components:
+
 1. **LlmClient** — hand-rolled Anthropic Messages API client (reqwest, no Python dependency)
 2. **MergeEngine** — per-comment parallel KEEP/DROP evaluator with deterministic short-circuits
 
@@ -45,10 +46,12 @@ The phase does NOT wire these into the CLI commands (that's Phase 4). It builds 
 **Decision:** Extract heading-scoped section blocks as context.
 
 A "section" is the text from the preceding `<h1>`–`<h6>` element (inclusive) to the next heading or end-of-document. When extracting context for a comment evaluation LLM call, pass:
+
 - The **old section** (from the existing Confluence page) — the heading and its body text with the comment marker stripped from the XML for readability
 - The **new section** (from the converted new content) — the closest matching section by heading text
 
 For the deterministic short-circuit (MERGE-02):
+
 - KEEP short-circuit: the section containing the comment marker, stripped of the marker itself, matches the corresponding section in new content with exact string equality
 - DROP short-circuit: no section in new content has a heading that matches (or closely matches) the old section heading
 
@@ -95,6 +98,7 @@ Parse `decision` from the `tool_use` content block. If the response does not con
 **Decision:** Exact anchor text match; fallback to section-start injection; RELOCATE is v2.
 
 After per-comment evaluation, for all KEEP decisions:
+
 1. **Deterministic KEEP (short-circuit):** Anchor text is unchanged by definition → find the exact comment marker text in new content XML and re-inject the `<ac:inline-comment-marker>` element wrapping it. This is a direct string replacement.
 2. **LLM KEEP (ambiguous):** Anchor text may have changed. Strategy:
    - Try exact match first
@@ -111,6 +115,7 @@ The `ac:inline-comment-marker` element wraps text: `<ac:inline-comment-marker ac
 **Decision:** Default semaphore bound of 5, configurable via `ANTHROPIC_CONCURRENCY` env var.
 
 Retry policy:
+
 - Retry on: 429 (rate limit), 500, 502, 503, 529 (overloaded)
 - Read `retry-after` header when present; otherwise use exponential backoff
 - Backoff: start 1s, multiply by 2 with ±25% jitter, max 32s
@@ -156,6 +161,7 @@ Where `CommentDecision` is `KEEP` or `DROP`. The trait is testable via mock with
 ### 8. Empty Page / No Comments Short-Circuit
 
 **Decision:** Skip the entire merge engine when:
+
 - New page content is empty (reuse `_is_content_empty`-style check from Python)
 - Existing page has no `<ac:inline-comment-marker>` elements
 

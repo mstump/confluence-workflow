@@ -82,53 +82,53 @@
 
 ## Out of Scope
 
-| Feature | Reason |
-|---------|--------|
-| MCP server | Dropped; Claude Code skills replace the agent integration use case |
-| Python runtime dependency | Clean break rewrite; no subprocess bridge to Python |
-| Backward compatibility with Python CLI | Clean break; users migrate manually |
-| OpenAI / Google providers at launch | Anthropic-only initially; v2 can add more |
-| Real-time streaming LLM output | Not needed for non-interactive CLI; non-streaming is simpler |
-| Confluence Server (on-prem) | Cloud REST API v1 only for now |
+| Feature                                | Reason                                                             |
+|----------------------------------------|--------------------------------------------------------------------|
+| MCP server                             | Dropped; Claude Code skills replace the agent integration use case |
+| Python runtime dependency              | Clean break rewrite; no subprocess bridge to Python                |
+| Backward compatibility with Python CLI | Clean break; users migrate manually                                |
+| OpenAI / Google providers at launch    | Anthropic-only initially; v2 can add more                          |
+| Real-time streaming LLM output         | Not needed for non-interactive CLI; non-streaming is simpler       |
+| Confluence Server (on-prem)            | Cloud REST API v1 only for now                                     |
 
 ## Traceability
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| SCAF-01 | Phase 1 | Satisfied |
-| SCAF-02 | Phase 6 | Satisfied |
-| SCAF-03 | Phase 6 / Phase 9 (gap closure) | Satisfied (integration gap: convert arm — closes in Phase 9) |
-| SCAF-04 | Phase 1 | Satisfied |
-| SCAF-05 | Phase 1 | Satisfied |
-| CONF-01 | Phase 1 | Satisfied |
-| CONF-02 | Phase 1 | Satisfied |
-| CONF-03 | Phase 1 | Satisfied |
-| CONF-04 | Phase 1 | Satisfied |
-| CONF-05 | Phase 1 | Satisfied |
-| CONV-01 | Phase 2 | Satisfied |
-| CONV-02 | Phase 2 | Satisfied |
-| CONV-03 | Phase 2 | Satisfied |
-| CONV-04 | Phase 2 | Satisfied |
-| CONV-05 | Phase 2 | Satisfied |
-| LLM-01 | Phase 3 | Satisfied |
-| LLM-02 | Phase 3 | Satisfied |
-| LLM-03 | Phase 3 | Satisfied |
-| LLM-04 | Phase 3 | Satisfied |
-| MERGE-01 | Phase 3 | Satisfied |
-| MERGE-02 | Phase 3 | Satisfied |
-| MERGE-03 | Phase 3 | Satisfied |
-| MERGE-04 | Phase 3 | Satisfied |
-| MERGE-05 | Phase 3 | Satisfied |
-| MERGE-06 | Phase 3 | Satisfied |
-| CLI-01 | Phase 4 / Phase 10 (test coverage) | Satisfied (happy-path test gap — closes in Phase 10) |
-| CLI-02 | Phase 4 / Phase 10 (test coverage) | Satisfied (happy-path test gap — closes in Phase 10) |
-| CLI-03 | Phase 4 | Satisfied |
-| CLI-04 | Phase 4 | Satisfied |
-| CLI-05 | Phase 4 | Satisfied |
-| DIST-01 | Phase 5 | Pending |
-| DIST-02 | Phase 5 | Pending |
-| DIST-03 | Phase 5 | Pending |
-| DIST-04 | Phase 5 | Pending |
+| Requirement | Phase                              | Status                                                       |
+|-------------|------------------------------------|--------------------------------------------------------------|
+| SCAF-01     | Phase 1                            | Satisfied                                                    |
+| SCAF-02     | Phase 6                            | Satisfied                                                    |
+| SCAF-03     | Phase 6 / Phase 9 (gap closure)    | Satisfied (integration gap: convert arm — closes in Phase 9) |
+| SCAF-04     | Phase 1                            | Satisfied                                                    |
+| SCAF-05     | Phase 1                            | Satisfied                                                    |
+| CONF-01     | Phase 1                            | Satisfied                                                    |
+| CONF-02     | Phase 1                            | Satisfied                                                    |
+| CONF-03     | Phase 1                            | Satisfied                                                    |
+| CONF-04     | Phase 1                            | Satisfied                                                    |
+| CONF-05     | Phase 1                            | Satisfied                                                    |
+| CONV-01     | Phase 2                            | Satisfied                                                    |
+| CONV-02     | Phase 2                            | Satisfied                                                    |
+| CONV-03     | Phase 2                            | Satisfied                                                    |
+| CONV-04     | Phase 2                            | Satisfied                                                    |
+| CONV-05     | Phase 2                            | Satisfied                                                    |
+| LLM-01      | Phase 3                            | Satisfied                                                    |
+| LLM-02      | Phase 3                            | Satisfied                                                    |
+| LLM-03      | Phase 3                            | Satisfied                                                    |
+| LLM-04      | Phase 3                            | Satisfied                                                    |
+| MERGE-01    | Phase 3                            | Satisfied                                                    |
+| MERGE-02    | Phase 3                            | Satisfied                                                    |
+| MERGE-03    | Phase 3                            | Satisfied                                                    |
+| MERGE-04    | Phase 3                            | Satisfied                                                    |
+| MERGE-05    | Phase 3                            | Satisfied                                                    |
+| MERGE-06    | Phase 3                            | Satisfied                                                    |
+| CLI-01      | Phase 4 / Phase 10 (test coverage) | Satisfied (happy-path test gap — closes in Phase 10)         |
+| CLI-02      | Phase 4 / Phase 10 (test coverage) | Satisfied (happy-path test gap — closes in Phase 10)         |
+| CLI-03      | Phase 4                            | Satisfied                                                    |
+| CLI-04      | Phase 4                            | Satisfied                                                    |
+| CLI-05      | Phase 4                            | Satisfied                                                    |
+| DIST-01     | Phase 5                            | Pending                                                      |
+| DIST-02     | Phase 5                            | Pending                                                      |
+| DIST-03     | Phase 5                            | Pending                                                      |
+| DIST-04     | Phase 5                            | Pending                                                      |
 
 **Coverage:**
 

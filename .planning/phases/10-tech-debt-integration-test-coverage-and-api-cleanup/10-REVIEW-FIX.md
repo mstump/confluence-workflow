@@ -16,6 +16,7 @@ status: all_fixed
 **Iteration:** 1
 
 **Summary:**
+
 - Findings in scope: 4
 - Fixed: 4
 - Skipped: 0
@@ -51,6 +52,7 @@ status: all_fixed
 **Files modified:** `src/error.rs`, `src/llm/mod.rs`, `src/lib.rs`, `tests/llm_integration.rs`
 **Commit:** 787b380
 **Applied fix:**
+
 - Added `InitError(String)` variant to `LlmError` in `src/error.rs`.
 - Changed `AnthropicClient::new` and `AnthropicClient::with_endpoint` signatures from `-> Self` to `-> Result<Self, LlmError>`, replacing `.expect("Failed to build reqwest client")` with `.map_err(|e| LlmError::InitError(e.to_string()))?`.
 - Updated the call site in `src/lib.rs` to propagate the error with `?`.

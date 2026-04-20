@@ -46,16 +46,19 @@ Wire all three CLI commands (`update`, `upload`, `convert`) through the full pip
 </decisions>
 
 <canonical_refs>
+
 ## Canonical References
 
 **Downstream agents MUST read these before planning or implementing.**
 
 ### CLI and Entry Point
+
 - `src/cli.rs` — existing Cli struct and Commands enum (--verbose already declared; --output needs to be added)
 - `src/lib.rs` — existing `run()` function with stubs to be replaced with real implementations
 - `src/main.rs` — entry point; tracing subscriber init goes here
 
 ### Phase Component Interfaces (to wire together)
+
 - `src/confluence/mod.rs` — ConfluenceApi trait and ConfluenceClient
 - `src/converter/mod.rs` — Converter trait
 - `src/llm/mod.rs` — LlmClient trait and AnthropicClient
@@ -64,25 +67,30 @@ Wire all three CLI commands (`update`, `upload`, `convert`) through the full pip
 - `src/error.rs` — AppError and error hierarchy
 
 ### Requirements
+
 - `.planning/REQUIREMENTS.md` §CLI Commands — CLI-01 through CLI-05 are the requirements for this phase
 
 </canonical_refs>
 
 <code_context>
+
 ## Existing Code Insights
 
 ### Reusable Assets
+
 - `Cli` struct in `src/cli.rs` — already has `--verbose` bool flag; just needs `--output` added as `Option<OutputFormat>` enum
 - `Config::load()` in `src/config.rs` — already handles credential waterfall; called in upload stub
 - `ConfluenceClient::new()` + `extract_page_id()` — already used in upload stub; reuse pattern for update
 - `tracing` crate — already in Cargo.toml and used in lib.rs
 
 ### Established Patterns
+
 - Error handling: `AppError` enum with `#[from]` conversions; `anyhow::Result` at boundaries
 - All I/O components behind traits — `ConfluenceApi`, `Converter`, `LlmClient` — so `run()` can accept mocks for integration tests
 - `update_page_with_retry()` in `confluence::client` — already exists for retry-on-409
 
 ### Integration Points
+
 - `lib.rs run()` — all wiring happens here; this is the main file being changed in 04-01
 - `main.rs` — tracing subscriber init (currently missing) goes here before `run()`
 - The upload stub shows the pattern: load config → build client → call API → print result
