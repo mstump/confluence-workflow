@@ -198,14 +198,25 @@ def test_convert_markdown_to_storage_removes_only_first_h1(mock_settings, tmp_pa
 
 def test_render_mermaid_to_svg_success(mock_settings):
     mermaid_content = "graph TD\n    A --> B"
-    with patch("confluence_agent.converter.subprocess.run") as mock_run, \
-         patch("confluence_agent.converter.tempfile.NamedTemporaryFile") as mock_tmpfile, \
-         patch("builtins.open", MagicMock(return_value=MagicMock(
-             __enter__=MagicMock(return_value=MagicMock(read=MagicMock(return_value=b"<svg>mermaid</svg>"))),
-             __exit__=MagicMock(return_value=False),
-         ))), \
-         patch("os.path.exists", return_value=True), \
-         patch("os.unlink"):
+    with (
+        patch("confluence_agent.converter.subprocess.run") as mock_run,
+        patch("confluence_agent.converter.tempfile.NamedTemporaryFile") as mock_tmpfile,
+        patch(
+            "builtins.open",
+            MagicMock(
+                return_value=MagicMock(
+                    __enter__=MagicMock(
+                        return_value=MagicMock(
+                            read=MagicMock(return_value=b"<svg>mermaid</svg>")
+                        )
+                    ),
+                    __exit__=MagicMock(return_value=False),
+                )
+            ),
+        ),
+        patch("os.path.exists", return_value=True),
+        patch("os.unlink"),
+    ):
         mock_input = MagicMock()
         mock_input.name = "/tmp/test.mmd"
         mock_input.__enter__ = MagicMock(return_value=mock_input)
@@ -284,8 +295,10 @@ graph TD
     E --> F
 ```
 """
-    with patch("confluence_agent.converter.render_puml_to_svg") as mock_puml, \
-         patch("confluence_agent.converter.render_mermaid_to_svg") as mock_mermaid:
+    with (
+        patch("confluence_agent.converter.render_puml_to_svg") as mock_puml,
+        patch("confluence_agent.converter.render_mermaid_to_svg") as mock_mermaid,
+    ):
         mock_puml.return_value = b"<svg>puml</svg>"
         mock_mermaid.return_value = b"<svg>mermaid</svg>"
 
@@ -293,7 +306,9 @@ graph TD
             markdown_content, mock_settings, tmp_path
         )
         processed_markdown, mermaid_attachments = process_markdown_mermaid(
-            processed_markdown, mock_settings, tmp_path,
+            processed_markdown,
+            mock_settings,
+            tmp_path,
             start_index=len(puml_attachments),
         )
         all_attachments = puml_attachments + mermaid_attachments
