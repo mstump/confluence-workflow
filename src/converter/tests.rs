@@ -523,3 +523,33 @@ async fn test_mock_converter_returns_fixed_result() {
     assert_eq!(result.attachments[0].filename, "test.svg");
     assert_eq!(result.attachments[0].content_type, "image/svg+xml");
 }
+
+/// Trait-boundary lock-in: invoke `MarkdownConverter::convert` via `&dyn Converter`
+/// (not as an inherent method) so the trait impl cannot be silently removed.
+///
+/// Roadmap Phase 10 success criterion: "Converter trait is exercised in the
+/// integration test path." The integration tests in `tests/cli_integration.rs`
+/// exercise the trait transparently through `src/lib.rs::run` (see the
+/// 10-02-SUMMARY audit), but that coverage is indirect — if the `impl Converter
+/// for MarkdownConverter` block were ever deleted, the integration tests would
+/// keep compiling (they call `.convert(...)` via an inherent method on the
+/// concrete type). This test fails to compile without the trait impl.
+#[tokio::test]
+async fn test_converter_trait_object_invocation() {
+    let concrete = MarkdownConverter::new(test_diagram_config());
+    let trait_obj: &dyn Converter = &concrete;
+    let result = trait_obj
+        .convert("# Heading\n\nBody paragraph.")
+        .await
+        .expect("trait-object convert should succeed on plain markdown");
+    assert!(
+        !result.storage_xml.trim().is_empty(),
+        "storage_xml should be non-empty; got: {:?}",
+        result.storage_xml
+    );
+    assert!(
+        result.attachments.is_empty(),
+        "plain markdown has no diagrams, so attachments must be empty; got len={}",
+        result.attachments.len()
+    );
+}
