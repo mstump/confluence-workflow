@@ -471,7 +471,8 @@ mod tests {
         );
     }
 
-    // Test 10: confluence_url must start with https:// (T-01-04 threat mitigation).
+    // Test 10: non-localhost http:// URLs are rejected (T-01-04 threat mitigation;
+    // D-01 exempts localhost — see companion test below).
     #[test]
     fn test_confluence_url_must_be_https() {
         let cli = Cli {
@@ -492,6 +493,26 @@ mod tests {
                 );
             }
             other => panic!("expected ConfigError::Invalid for http URL, got: {other:?}"),
+        }
+    }
+
+    // Test: http://localhost and http://127.0.0.1 are accepted for integration testing (D-01).
+    #[test]
+    fn test_confluence_url_localhost_exemption() {
+        for url in ["http://localhost:8080", "http://127.0.0.1:9999", "HTTP://LOCALHOST:1234"] {
+            let cli = Cli {
+                confluence_url: Some(url.to_string()),
+                confluence_username: Some("user@example.com".to_string()),
+                confluence_token: Some("token".to_string()),
+                ..cli_blank()
+            };
+            let cfg = Config::load_with_home(&cli, Some(&no_home()))
+                .unwrap_or_else(|e| panic!("{url} should be allowed, got: {e:?}"));
+            assert_eq!(
+                cfg.confluence_url.to_ascii_lowercase(),
+                url.to_ascii_lowercase(),
+                "stored URL should match the input (case-insensitive compare)"
+            );
         }
     }
 
