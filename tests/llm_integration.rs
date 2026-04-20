@@ -71,7 +71,8 @@ async fn test_sends_correct_headers() {
         "test-api-key".to_string(),
         "claude-haiku-4-5-20251001".to_string(),
         server.uri(),
-    );
+    )
+    .unwrap();
 
     let result = client
         .evaluate_comment("old section", Some("new section"), &test_marker())
@@ -96,7 +97,8 @@ async fn test_sends_tool_use_schema() {
         "test-key".to_string(),
         "claude-haiku-4-5-20251001".to_string(),
         server.uri(),
-    );
+    )
+    .unwrap();
 
     client
         .evaluate_comment("old", Some("new"), &test_marker())
@@ -145,7 +147,8 @@ async fn test_keep_response_returns_keep() {
         "key".to_string(),
         "model".to_string(),
         server.uri(),
-    );
+    )
+    .unwrap();
 
     let result = client
         .evaluate_comment("old", Some("new"), &test_marker())
@@ -170,7 +173,8 @@ async fn test_drop_response_returns_drop() {
         "key".to_string(),
         "model".to_string(),
         server.uri(),
-    );
+    )
+    .unwrap();
 
     let result = client
         .evaluate_comment("old", Some("new"), &test_marker())
@@ -194,7 +198,8 @@ async fn test_no_tool_use_block_defaults_to_keep() {
         "key".to_string(),
         "model".to_string(),
         server.uri(),
-    );
+    )
+    .unwrap();
 
     let result = client
         .evaluate_comment("old", Some("new"), &test_marker())
@@ -227,7 +232,8 @@ async fn test_429_triggers_retry_then_succeeds() {
         "key".to_string(),
         "model".to_string(),
         server.uri(),
-    );
+    )
+    .unwrap();
 
     let result = client
         .evaluate_comment("old", Some("new"), &test_marker())
@@ -260,7 +266,8 @@ async fn test_529_overloaded_triggers_retry() {
         "key".to_string(),
         "model".to_string(),
         server.uri(),
-    );
+    )
+    .unwrap();
 
     let result = client
         .evaluate_comment("old", Some("new"), &test_marker())
@@ -285,7 +292,8 @@ async fn test_400_does_not_retry() {
         "key".to_string(),
         "model".to_string(),
         server.uri(),
-    );
+    )
+    .unwrap();
 
     let result = client
         .evaluate_comment("old", Some("new"), &test_marker())
@@ -315,7 +323,8 @@ async fn test_five_consecutive_429s_returns_rate_limit_exhausted() {
         "key".to_string(),
         "model".to_string(),
         server.uri(),
-    );
+    )
+    .unwrap();
 
     let result = client
         .evaluate_comment("old", Some("new"), &test_marker())
@@ -355,7 +364,8 @@ async fn test_retry_after_header_is_respected() {
         "key".to_string(),
         "model".to_string(),
         server.uri(),
-    );
+    )
+    .unwrap();
 
     let start = std::time::Instant::now();
     let result = client
@@ -388,7 +398,8 @@ async fn test_deleted_section_prompt() {
         "key".to_string(),
         "model".to_string(),
         server.uri(),
-    );
+    )
+    .unwrap();
 
     // Pass None for new_section (deleted section)
     client
@@ -412,7 +423,8 @@ fn test_api_key_not_in_debug_output() {
         "sk-secret-key-12345".to_string(),
         "model".to_string(),
         "http://localhost:1234".to_string(),
-    );
+    )
+    .unwrap();
 
     // The AnthropicClient struct does not derive Debug, so the api_key
     // cannot leak through Debug formatting. Verify the struct fields

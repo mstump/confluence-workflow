@@ -42,6 +42,9 @@ pub enum LlmError {
 
     #[error("Malformed tool_use response: {0}")]
     MalformedResponse(String),
+
+    #[error("Failed to initialize LLM client: {0}")]
+    InitError(String),
 }
 
 /// Merge engine errors.

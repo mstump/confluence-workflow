@@ -53,7 +53,7 @@ impl AnthropicClient {
     /// D-03) when set to a non-empty value; otherwise falls back to the production
     /// URL. `with_endpoint` (below) remains the direct seam for unit tests that
     /// prefer not to mutate process env.
-    pub fn new(api_key: String, model: String) -> Self {
+    pub fn new(api_key: String, model: String) -> Result<Self, LlmError> {
         let endpoint = std::env::var("ANTHROPIC_BASE_URL")
             .ok()
             .filter(|s| !s.is_empty())
@@ -62,7 +62,7 @@ impl AnthropicClient {
     }
 
     /// Create a new client with a custom endpoint (for testing with wiremock).
-    pub fn with_endpoint(api_key: String, model: String, endpoint: String) -> Self {
+    pub fn with_endpoint(api_key: String, model: String, endpoint: String) -> Result<Self, LlmError> {
         let client = reqwest::Client::builder()
             .default_headers({
                 let mut headers = reqwest::header::HeaderMap::new();
@@ -77,14 +77,14 @@ impl AnthropicClient {
                 headers
             })
             .build()
-            .expect("Failed to build reqwest client");
+            .map_err(|e| LlmError::InitError(e.to_string()))?;
 
-        Self {
+        Ok(Self {
             client,
             api_key,
             model,
             endpoint,
-        }
+        })
     }
 
     /// Send a request with exponential backoff retry on transient errors.

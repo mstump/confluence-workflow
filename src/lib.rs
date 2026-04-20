@@ -117,7 +117,7 @@ pub async fn run(cli: Cli) -> Result<CommandResult, AppError> {
             let llm_client = Arc::new(AnthropicClient::new(
                 api_key,
                 config.anthropic_model.clone(),
-            ));
+            )?);
             let merge_result = merge::merge(
                 old_content,
                 &convert_result.storage_xml,
