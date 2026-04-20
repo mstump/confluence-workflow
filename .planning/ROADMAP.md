@@ -178,7 +178,7 @@ Plans:
 
 Plans:
 - [x] 09-01-PLAN.md — Produce Phase 08 VERIFICATION.md via goal-backward analysis of Phase 08's 9 must-have truths (Wave 1, runs first so evidence reflects Phase 08's state at close)
-- [ ] 09-02-PLAN.md — Refactor config to trust clap-derive: delete CliOverrides, change `Config::load` signature to `&Cli`, hoist dotenvy to main.rs, simplify convert arm, add env-var-tier integration test (Wave 2, depends on 09-01)
+- [x] 09-02-PLAN.md — Refactor config to trust clap-derive: delete CliOverrides, change `Config::load` signature to `&Cli`, hoist dotenvy to main.rs, simplify convert arm, add env-var-tier integration test (Wave 2, depends on 09-01)
 
 ### Phase 10: Tech Debt — Integration Test Coverage and API Cleanup
 **Goal**: Add passing integration tests for the update and upload happy paths; remove the dead `DiagramConfig::from_env()` public API
