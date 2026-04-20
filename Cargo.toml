@@ -3,6 +3,13 @@ name = "confluence-agent"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.80"
+description = "Merge Markdown files into Confluence pages while preserving inline comments"
+license = "MIT"
+repository = "https://github.com/mstump/confluence-workflow"
+readme = "README.md"
+keywords = ["confluence", "markdown", "atlassian", "cli", "merge"]
+categories = ["command-line-utilities"]
+exclude = ["tests/fixtures/**", ".planning/**", ".github/**"]
 
 [[bin]]
 name = "confluence-agent"
