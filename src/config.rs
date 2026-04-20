@@ -109,6 +109,7 @@ impl Config {
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
             .unwrap_or(5)
+            .max(1)   // prevent zero-permit deadlock
             .min(50); // prevent runaway concurrency
 
         // Diagram paths: Cli tier (clap-resolved from CLI flag OR env var) to default.
