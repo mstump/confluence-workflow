@@ -421,22 +421,25 @@ file target/release/confluence-agent
 | A2 | The desired license is MIT or Apache-2.0 — no `LICENSE` file found in repo | Standard Stack | Publishing blocked if license choice is wrong; requires human decision |
 | A3 | `~/.cargo/bin` is on PATH for Claude Code skill invocations | Pitfall 4 | Skill fails silently for users who did not add cargo bin to PATH |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **License choice**
    - What we know: `license` is required for crates.io; no `LICENSE` file exists in the repo
    - What's unclear: MIT, Apache-2.0, or dual MIT/Apache-2.0 (Rust ecosystem default)?
    - Recommendation: Use `license = "MIT OR Apache-2.0"` (Rust ecosystem convention) and add both `LICENSE-MIT` and `LICENSE-APACHE` files
+   - RESOLVED: human decision required -- Task 1 checkpoint in 05-01 gates execution; executor proposes MIT OR Apache-2.0 (Rust ecosystem convention)
 
 2. **Publish immediately vs. git-only install**
    - What we know: DIST-01 says `cargo install confluence-agent` — this implies crates.io; git-install would be `cargo install --git ...`
    - What's unclear: Is a crates.io account already set up? Is the intent to publish now or defer?
    - Recommendation: Plan for crates.io publish in 05-01; if no account exists, `cargo install --git` is a valid temporary alternative
+   - RESOLVED: `cargo install --path .` verified locally; actual `cargo publish` to crates.io is a manual step requiring crates.io credentials and is out of scope for this phase
 
 3. **Skill location — personal vs. project**
    - What we know: DIST-02 specifies `~/.claude/commands/confluence-update.md` (personal scope)
    - What's unclear: Should the skill source files also live in the repo for distribution?
    - Recommendation: Commit skill files to `skills/` in the repo; document manual copy to `~/.claude/skills/` in README
+   - RESOLVED: skill files committed to `skills/` directory in repo root; users copy to `~/.claude/skills/` manually (documented in task 2 action in 05-02)
 
 ## Environment Availability
 
