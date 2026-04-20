@@ -68,7 +68,7 @@ impl Converter for MarkdownConverter {
             };
 
             // Replace placeholder with ac:image reference
-            let placeholder = format!("<!-- DIAGRAM_PLACEHOLDER_{i} -->");
+            let placeholder = format!("<!-- DIAGRAM_PLACEHOLDER_{i:04} -->");
             let image_xml = format!(
                 r#"<ac:image ac:alt="{kind} diagram"><ri:attachment ri:filename="{filename}" /></ac:image>"#,
                 kind = block.kind,

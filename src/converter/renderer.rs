@@ -128,7 +128,7 @@ impl ConfluenceRenderer {
                         diagram_blocks.push(DiagramBlock { kind, content });
                         write!(
                             renderer.output,
-                            "<!-- DIAGRAM_PLACEHOLDER_{} -->",
+                            "<!-- DIAGRAM_PLACEHOLDER_{:04} -->",
                             diagram_blocks.len() - 1
                         )
                         .unwrap();
