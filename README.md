@@ -46,23 +46,23 @@ Auth credentials (`CONFLUENCE_URL`, `CONFLUENCE_USERNAME`, `CONFLUENCE_API_TOKEN
 2. Environment variable
 3. `~/.claude/settings.json` (top-level key matching the env var name — session auth only)
 
-| CLI flag | Env var | Required | Description |
-| --- | --- | --- | --- |
-| `--confluence-url` | `CONFLUENCE_URL` | Yes | Base URL, e.g. `https://your-domain.atlassian.net` |
-| `--confluence-username` | `CONFLUENCE_USERNAME` | Yes | Email address |
-| `--confluence-api-token` | `CONFLUENCE_API_TOKEN` | Yes | Atlassian API token |
-| `--anthropic-api-key` | `ANTHROPIC_API_KEY` | `update` only | Anthropic API key |
-| `--plantuml-path` | `PLANTUML_PATH` | No | Path to plantuml (default: `plantuml`) |
-| `--mermaid-path` | `MERMAID_PATH` | No | Path to mmdc (default: `mmdc`) |
+| CLI flag                 | Env var                | Required      | Description                                        |
+| ------------------------ | ---------------------- | ------------- | -------------------------------------------------- |
+| `--confluence-url`       | `CONFLUENCE_URL`       | Yes           | Base URL, e.g. `https://your-domain.atlassian.net` |
+| `--confluence-username`  | `CONFLUENCE_USERNAME`  | Yes           | Email address                                      |
+| `--confluence-api-token` | `CONFLUENCE_API_TOKEN` | Yes           | Atlassian API token                                |
+| `--anthropic-api-key`    | `ANTHROPIC_API_KEY`    | `update` only | Anthropic API key                                  |
+| `--plantuml-path`        | `PLANTUML_PATH`        | No            | Path to plantuml (default: `plantuml`)             |
+| `--mermaid-path`         | `MERMAID_PATH`         | No            | Path to mmdc (default: `mmdc`)                     |
 
 Additional env vars (no CLI flag):
 
-| Env var | Default | Description |
-| --- | --- | --- |
-| `ANTHROPIC_MODEL` | `claude-haiku-4-5-20251001` | Model used for the LLM pipeline |
-| `ANTHROPIC_CONCURRENCY` | `5` | Max concurrent LLM requests |
-| `MERMAID_PUPPETEER_CONFIG` | — | Path to puppeteer config file for mmdc |
-| `DIAGRAM_TIMEOUT` | `30` | Seconds before a diagram render subprocess is killed |
+| Env var                    | Default                     | Description                                          |
+| -------------------------- | --------------------------- | ---------------------------------------------------- |
+| `ANTHROPIC_MODEL`          | `claude-haiku-4-5-20251001` | Model used for the LLM pipeline                      |
+| `ANTHROPIC_CONCURRENCY`    | `5`                         | Max concurrent LLM requests                          |
+| `MERMAID_PUPPETEER_CONFIG` | —                           | Path to puppeteer config file for mmdc               |
+| `DIAGRAM_TIMEOUT`          | `30`                        | Seconds before a diagram render subprocess is killed |
 
 The simplest setup is a `.env` file in the working directory (loaded automatically):
 
@@ -104,10 +104,10 @@ confluence-agent convert doc.md ./output-dir
 
 ### Global flags
 
-| Flag | Description |
-| --- | --- |
-| `--verbose` / `-v` | Enable debug logging |
-| `--output human\|json` | Output format (default: `human`) |
+| Flag                      | Description                      |
+| ------------------------- | -------------------------------- |
+| `--verbose` / `-v`        | Enable debug logging             |
+| `--output human\|json`    | Output format (default: `human`) |
 
 ## Development
 
