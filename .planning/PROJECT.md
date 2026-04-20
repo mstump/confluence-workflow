@@ -106,4 +106,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-Last updated: 2026-04-10 after initialization
+Last updated: 2026-04-20 after Phase 09 completion — SCAF-03 integration gap closed (CliOverrides removed, Config::load takes &Cli, dotenvy hoisted to main.rs); Phase 08 VERIFICATION.md authored
