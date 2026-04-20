@@ -1,57 +1,83 @@
 # About This Project
 
-This project provides a `confluence-agent` that converts Jira markup into Confluence Wiki format and uploads it to a specified Confluence space. It leverages an LLM to assist with the conversion process and includes features for handling images and diagrams.
+`confluence-agent` is a Rust CLI tool that converts Markdown files to Confluence storage format and publishes them to a Confluence space. It uses a multi-step LLM pipeline (Merge → Reflect → Critic) to intelligently merge new content with an existing page while preserving inline comments and rendering diagrams (PlantUML, Mermaid).
 
 ## Codebase Structure
 
-The codebase is organized into the following key directories and files:
+```text
+src/
+  main.rs               — Binary entry point
+  lib.rs                — Top-level orchestration (run function, command dispatch)
+  cli.rs                — Clap-based CLI (update, upload, convert subcommands)
+  config.rs             — Config struct; waterfall loader (CLI → env → ~/.claude/settings.json → defaults)
+  error.rs              — Unified LlmError / AppError types
+  confluence/
+    client.rs           — Confluence REST API client (get/update page, upload attachments)
+    types.rs            — Page, attachment, and API response types
+    url.rs              — URL validation and parsing helpers
+  converter/
+    mod.rs              — MarkdownConverter: Markdown → Confluence storage XML
+    diagrams.rs         — PlantUML / Mermaid → SVG rendering
+    renderer.rs         — Diagram placeholder substitution
+    tests.rs            — Unit tests for converter
+  llm/
+    mod.rs              — AnthropicClient; Merge/Reflect/Critic LLM pipeline
+    types.rs            — Request/response types, structured output models
+  merge/
+    extractor.rs        — Extract inline-comment markers from existing page XML
+    injector.rs         — Re-inject markers into merged output
+    matcher.rs          — Fuzzy marker matching
+    mod.rs              — Merge orchestration
 
-- `src/confluence_agent/`: Contains the main source code for the `confluence-agent`.
-  - `agent.py`: The core logic for the agent, orchestrating the conversion and upload process.
-  - `cli.py`: The command-line interface for the agent, built using `typer`.
-  - `config.py`: Handles loading and validation of configuration from a `.env` file.
-  - `confluence.py`: A client for interacting with the Confluence API (e.g., uploading pages, attachments).
-  - `converter.py`: The logic for converting Jira markup to Confluence Wiki format.
-  - `llm.py`: Interacts with a Large Language Model (LLM) to assist in conversion.
-  - `llm_prompts.py`: Contains the prompts used for the LLM.
-  - `md2conf.py`: A module for converting Markdown to Confluence format.
-  - `models.py`: Defines the data models used throughout the application.
-- `tests/`: Contains the automated tests for the project.
-  - `test_*.py`: Individual test files corresponding to the modules in `src/confluence_agent/`.
-- `pyproject.toml`: The project's build and dependency configuration file.
-- `README.md`: The main project documentation.
-- `AGENTS.md`: This file, providing instructions for AI agents.
+tests/
+  cli_integration.rs    — Happy-path integration tests (wiremock, assert_cmd)
+  llm_integration.rs    — LLM client tests (wiremock)
+  output_format.rs      — Stdout/stderr routing tests
+```
 
 ## Common Tasks
 
-### Running Tests
-
-To run the full test suite, use the following command:
+### Build
 
 ```bash
-uv run pytest
+cargo build
 ```
 
-### Type Checking
-
-To validate type hints, use `mypy`:
+### Run tests
 
 ```bash
-uv run mypy .
+cargo test
 ```
 
-### Formatting Code
-
-To format the Python code using `black`:
+### Run a single test
 
 ```bash
-uv run black .
+cargo test test_name
 ```
 
-### Linting Markdown Files
-
-To lint and fix Markdown files:
+### CLI usage
 
 ```bash
-markdownlint --fix .
+# Merge markdown into an existing Confluence page (LLM pipeline)
+confluence-agent update doc.md https://domain.atlassian.net/wiki/...
+
+# Direct upload, no LLM
+confluence-agent upload doc.md https://domain.atlassian.net/wiki/...
+
+# Local conversion only (no network)
+confluence-agent convert doc.md ./output
 ```
+
+### Environment variables
+
+| Variable | Purpose |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | Required for LLM pipeline |
+| `ANTHROPIC_BASE_URL` | Override LLM endpoint (used in tests) |
+| `CONFLUENCE_URL` | Base URL (alternative to CLI flag) |
+| `CONFLUENCE_USERNAME` | Atlassian account email |
+| `CONFLUENCE_API_TOKEN` | Atlassian API token |
+| `PLANTUML_PATH` | Path to `plantuml` binary (default: `plantuml`) |
+| `MERMAID_PATH` | Path to `mmdc` binary (default: `mmdc`) |
+| `DIAGRAM_TIMEOUT` | Subprocess timeout seconds (default: 30) |
+| `ANTHROPIC_CONCURRENCY` | Max parallel LLM requests (default: 5, min: 1, max: 50) |
