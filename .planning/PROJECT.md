@@ -106,4 +106,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-Last updated: 2026-04-20 after Phase 09 completion — SCAF-03 integration gap closed (CliOverrides removed, Config::load takes &Cli, dotenvy hoisted to main.rs); Phase 08 VERIFICATION.md authored
+Last updated: 2026-04-20 after Phase 10 completion — CLI-01/CLI-02 integration tests added (wiremock-driven happy-path for update/upload); dead public API removed (DiagramConfig::from_env, Default impls); &dyn Converter trait-object test added; 142 tests passing
