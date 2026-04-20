@@ -18,6 +18,12 @@ fn init_tracing(verbose: bool) {
 
 #[tokio::main]
 async fn main() {
+    // Load .env into process env BEFORE Cli::parse() so clap's env= attribute
+    // (e.g., #[arg(env = "PLANTUML_PATH")]) can see .env-sourced values.
+    // Hoisted from Config::load() in Phase 09 per D-01/D-02 — the previous
+    // call site in Config::load() was too late for clap.
+    dotenvy::dotenv().ok();
+
     let cli = Cli::parse();
     let output_format = cli.output.clone();
     let verbose = cli.verbose;

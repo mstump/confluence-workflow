@@ -1,3 +1,4 @@
+use crate::cli::Cli;
 use crate::error::ConfigError;
 use std::path::Path;
 
@@ -42,17 +43,6 @@ impl Default for DiagramConfig {
     }
 }
 
-/// CLI override values — mirrors the optional CLI flags from `Cli`.
-#[derive(Debug, Default)]
-pub struct CliOverrides {
-    pub confluence_url: Option<String>,
-    pub confluence_username: Option<String>,
-    pub confluence_api_token: Option<String>,
-    pub anthropic_api_key: Option<String>,
-    pub plantuml_path: Option<String>,
-    pub mermaid_path: Option<String>,
-}
-
 /// Resolved, validated application configuration.
 #[derive(Debug)]
 pub struct Config {
@@ -66,26 +56,27 @@ pub struct Config {
 }
 
 impl Config {
-    /// Load configuration using the waterfall strategy:
-    /// CLI override → environment variable → `.env` file → `~/.claude/` fallback.
+    /// Load configuration from already-parsed CLI values.
     ///
-    /// Calls `dotenvy::dotenv().ok()` first to load `.env` into the environment,
-    /// then resolves each field in priority order.
-    pub fn load(overrides: &CliOverrides) -> Result<Self, ConfigError> {
-        // Load .env into env vars (non-fatal if file is absent).
-        dotenvy::dotenv().ok();
-        Self::load_with_home(overrides, dirs::home_dir().as_deref())
+    /// Clap-derive has already resolved CLI flag to env var for every `Option<String>`
+    /// field on `&Cli` (via `#[arg(long, env = "...")]`). This function fills in the
+    /// `~/.claude/settings.json` credential fallback tier and applies defaults for
+    /// non-credential fields.
+    ///
+    /// Note: `dotenvy::dotenv().ok()` is called in `src/main.rs` before `Cli::parse()`,
+    /// NOT here, so clap's env-var resolution sees `.env`-sourced values.
+    pub fn load(cli: &Cli) -> Result<Self, ConfigError> {
+        Self::load_with_home(cli, dirs::home_dir().as_deref())
     }
 
     /// Load with an explicit home directory — used in tests to avoid reading real credentials.
-    /// Does NOT call dotenvy::dotenv() so tests have full control over the environment.
     pub(crate) fn load_with_home(
-        overrides: &CliOverrides,
+        cli: &Cli,
         home: Option<&Path>,
     ) -> Result<Self, ConfigError> {
 
         let confluence_url = Self::resolve_required(
-            overrides.confluence_url.as_deref(),
+            cli.confluence_url.as_deref(),
             "CONFLUENCE_URL",
             home,
         )?;
@@ -102,21 +93,24 @@ impl Config {
         }
 
         let confluence_username = Self::resolve_required(
-            overrides.confluence_username.as_deref(),
+            cli.confluence_username.as_deref(),
             "CONFLUENCE_USERNAME",
             home,
         )?;
         let confluence_username = confluence_username.trim().to_string();
 
+        // NOTE: Cli field is `confluence_token` (not `confluence_api_token`);
+        // env_key stays `"CONFLUENCE_API_TOKEN"` so the ~/.claude/ lookup uses
+        // the external key name.
         let confluence_api_token = Self::resolve_required(
-            overrides.confluence_api_token.as_deref(),
+            cli.confluence_token.as_deref(),
             "CONFLUENCE_API_TOKEN",
             home,
         )?;
         let confluence_api_token = confluence_api_token.trim().to_string();
 
         let anthropic_api_key = Self::resolve_optional(
-            overrides.anthropic_api_key.as_deref(),
+            cli.anthropic_api_key.as_deref(),
             "ANTHROPIC_API_KEY",
             home,
         );
@@ -134,17 +128,12 @@ impl Config {
             .unwrap_or(5)
             .min(50); // prevent runaway concurrency
 
-        let plantuml_path = Self::resolve_optional(
-            overrides.plantuml_path.as_deref(),
-            "PLANTUML_PATH",
-            home,
-        ).unwrap_or_else(|| "plantuml".to_string());
-
-        let mermaid_path = Self::resolve_optional(
-            overrides.mermaid_path.as_deref(),
-            "MERMAID_PATH",
-            home,
-        ).unwrap_or_else(|| "mmdc".to_string());
+        // Diagram paths: Cli tier (clap-resolved from CLI flag OR env var) to default.
+        // No ~/.claude/ tier per D-03/D-05 — credentials only get that tier.
+        let plantuml_path = cli.plantuml_path.clone()
+            .unwrap_or_else(|| "plantuml".to_string());
+        let mermaid_path = cli.mermaid_path.clone()
+            .unwrap_or_else(|| "mmdc".to_string());
 
         let mermaid_puppeteer_config = std::env::var("MERMAID_PUPPETEER_CONFIG").ok();
         let timeout_secs = std::env::var("DIAGRAM_TIMEOUT")
@@ -170,28 +159,25 @@ impl Config {
         })
     }
 
-    /// Resolve a required field from the waterfall. Returns `ConfigError::Missing` if
-    /// no source provides a non-empty value.
+    /// Resolve a required field. Returns `ConfigError::Missing` if no source
+    /// provides a non-empty value.
+    ///
+    /// Tier 1 (Cli) already includes the env-var value because clap-derive's
+    /// `#[arg(long, env = "...")]` attribute resolves it at `Cli::parse()` time.
+    /// Tier 2 is the `~/.claude/settings.json` credential fallback.
     fn resolve_required(
-        cli_override: Option<&str>,
+        cli_value: Option<&str>,
         env_key: &'static str,
         home: Option<&Path>,
     ) -> Result<String, ConfigError> {
-        // 1. CLI override
-        if let Some(val) = cli_override {
+        // 1. Cli tier (already includes env var via clap-derive)
+        if let Some(val) = cli_value {
             if !val.is_empty() {
                 return Ok(val.to_string());
             }
         }
 
-        // 2. Environment variable (already includes .env via dotenvy)
-        if let Ok(val) = std::env::var(env_key) {
-            if !val.is_empty() {
-                return Ok(val);
-            }
-        }
-
-        // 3. ~/.claude/ fallback (best-effort stub)
+        // 2. ~/.claude/ fallback (best-effort)
         if let Some(val) = load_from_claude_config(env_key, home) {
             if !val.is_empty() {
                 return Ok(val);
@@ -201,28 +187,25 @@ impl Config {
         Err(ConfigError::Missing { name: env_key })
     }
 
-    /// Resolve an optional field from the waterfall. Returns `None` if no source provides
-    /// a value — this is not an error.
+    /// Resolve an optional field. Returns `None` if no source provides a value
+    /// — this is not an error.
+    ///
+    /// Tier 1 (Cli) already includes the env-var value because clap-derive's
+    /// `#[arg(long, env = "...")]` attribute resolves it at `Cli::parse()` time.
+    /// Tier 2 is the `~/.claude/settings.json` credential fallback.
     fn resolve_optional(
-        cli_override: Option<&str>,
+        cli_value: Option<&str>,
         env_key: &str,
         home: Option<&Path>,
     ) -> Option<String> {
-        // 1. CLI override
-        if let Some(val) = cli_override {
+        // 1. Cli tier (already includes env var via clap-derive)
+        if let Some(val) = cli_value {
             if !val.is_empty() {
                 return Some(val.to_string());
             }
         }
 
-        // 2. Environment variable
-        if let Ok(val) = std::env::var(env_key) {
-            if !val.is_empty() {
-                return Some(val);
-            }
-        }
-
-        // 3. ~/.claude/ fallback (best-effort)
+        // 2. ~/.claude/ fallback (best-effort)
         load_from_claude_config(env_key, home)
     }
 }
@@ -263,6 +246,7 @@ fn load_from_claude_config(key: &str, home: Option<&Path>) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cli::{Cli, Commands, OutputFormat};
     use serial_test::serial;
     use std::path::PathBuf;
 
@@ -271,19 +255,39 @@ mod tests {
         PathBuf::from("/nonexistent-test-home-dir-that-cannot-exist")
     }
 
+    /// Build a Cli struct populated with None/default values. Tests override
+    /// individual fields with struct-update syntax:
+    /// `Cli { confluence_url: Some(...), ..cli_blank() }`.
+    fn cli_blank() -> Cli {
+        Cli {
+            confluence_url: None,
+            confluence_username: None,
+            confluence_token: None,
+            anthropic_api_key: None,
+            plantuml_path: None,
+            mermaid_path: None,
+            verbose: false,
+            output: OutputFormat::Human,
+            command: Commands::Convert {
+                markdown_path: PathBuf::new(),
+                output_dir: PathBuf::new(),
+            },
+        }
+    }
+
     // Test 1: Config loads from CLI overrides when all three Confluence fields are provided.
     #[test]
     fn test_load_from_cli_overrides() {
-        let overrides = CliOverrides {
+        let cli = Cli {
             confluence_url: Some("https://example.atlassian.net".to_string()),
             confluence_username: Some("user@example.com".to_string()),
-            confluence_api_token: Some("token123".to_string()),
+            confluence_token: Some("token123".to_string()),
             anthropic_api_key: Some("ant-key".to_string()),
-            ..Default::default()
+            ..cli_blank()
         };
 
         // CLI values override everything; use no_home() so ~/.claude/ is never checked.
-        let config = Config::load_with_home(&overrides, Some(&no_home()))
+        let config = Config::load_with_home(&cli, Some(&no_home()))
             .expect("should load from CLI overrides");
 
         assert_eq!(config.confluence_url, "https://example.atlassian.net");
@@ -292,52 +296,10 @@ mod tests {
         assert_eq!(config.anthropic_api_key.as_deref(), Some("ant-key"));
     }
 
-    // Test 2: Config falls through to env vars when CLI overrides are None.
-    #[test]
-    #[serial]
-    fn test_fallthrough_to_env_vars() {
-        // Use unique env var names scoped to this test to avoid races.
-        // We temporarily set then clear them; run tests sequentially if flaky.
-        std::env::set_var("CONFLUENCE_URL", "https://via-env.atlassian.net");
-        std::env::set_var("CONFLUENCE_USERNAME", "env-user@example.com");
-        std::env::set_var("CONFLUENCE_API_TOKEN", "env-token");
-
-        let overrides = CliOverrides::default();
-        let result = Config::load_with_home(&overrides, Some(&no_home()));
-
-        std::env::remove_var("CONFLUENCE_URL");
-        std::env::remove_var("CONFLUENCE_USERNAME");
-        std::env::remove_var("CONFLUENCE_API_TOKEN");
-
-        let config = result.expect("should load from env vars");
-        assert_eq!(config.confluence_url, "https://via-env.atlassian.net");
-        assert_eq!(config.confluence_username, "env-user@example.com");
-        assert_eq!(config.confluence_api_token, "env-token");
-    }
-
-    // Test 3: Config loads .env file when env vars are not set.
-    // dotenvy loads the .env into the process environment before resolution, so the
-    // resolution path is identical to env vars.  We verify by setting vars directly
-    // (simulating what dotenvy does) and confirming they are picked up.
-    #[test]
-    #[serial]
-    fn test_env_vars_used_when_cli_absent() {
-        std::env::set_var("CONFLUENCE_URL", "https://dotenv.atlassian.net");
-        std::env::set_var("CONFLUENCE_USERNAME", "dotenv-user");
-        std::env::set_var("CONFLUENCE_API_TOKEN", "dotenv-token");
-
-        let overrides = CliOverrides::default();
-        let result = Config::load_with_home(&overrides, Some(&no_home()));
-
-        std::env::remove_var("CONFLUENCE_URL");
-        std::env::remove_var("CONFLUENCE_USERNAME");
-        std::env::remove_var("CONFLUENCE_API_TOKEN");
-
-        let config = result.expect("should load when env vars present");
-        assert_eq!(config.confluence_url, "https://dotenv.atlassian.net");
-        assert_eq!(config.confluence_username, "dotenv-user");
-        assert_eq!(config.confluence_api_token, "dotenv-token");
-    }
+    // test_fallthrough_to_env_vars and test_env_vars_used_when_cli_absent were removed
+    // in Phase 09 — they tested the Config::resolve_required env-var tier that now
+    // lives exclusively in clap-derive's #[arg(env = "...")] attribute. Env-var tier
+    // coverage moved to tests/cli_integration.rs::test_convert_with_env_var_diagram_paths.
 
     // Test 4: Missing confluence_url produces ConfigError::Missing with name "CONFLUENCE_URL".
     #[test]
@@ -345,16 +307,16 @@ mod tests {
     fn test_missing_confluence_url_error() {
         // Provide username + token via CLI; leave URL absent from all sources.
         // Use no_home() so ~/.claude/ fallback returns None.
-        let overrides = CliOverrides {
+        let cli = Cli {
             confluence_username: Some("user@example.com".to_string()),
-            confluence_api_token: Some("token".to_string()),
-            ..Default::default()
+            confluence_token: Some("token".to_string()),
+            ..cli_blank()
         };
         // Ensure env var not set for this test (remove it, then restore later).
         let saved = std::env::var("CONFLUENCE_URL").ok();
         std::env::remove_var("CONFLUENCE_URL");
 
-        let err = Config::load_with_home(&overrides, Some(&no_home()))
+        let err = Config::load_with_home(&cli, Some(&no_home()))
             .expect_err("should fail when CONFLUENCE_URL missing");
 
         if let Some(v) = saved {
@@ -376,15 +338,15 @@ mod tests {
     #[test]
     #[serial]
     fn test_missing_confluence_username_error() {
-        let overrides = CliOverrides {
+        let cli = Cli {
             confluence_url: Some("https://example.atlassian.net".to_string()),
-            confluence_api_token: Some("token".to_string()),
-            ..Default::default()
+            confluence_token: Some("token".to_string()),
+            ..cli_blank()
         };
         let saved = std::env::var("CONFLUENCE_USERNAME").ok();
         std::env::remove_var("CONFLUENCE_USERNAME");
 
-        let err = Config::load_with_home(&overrides, Some(&no_home()))
+        let err = Config::load_with_home(&cli, Some(&no_home()))
             .expect_err("should fail when CONFLUENCE_USERNAME missing");
 
         if let Some(v) = saved {
@@ -403,15 +365,15 @@ mod tests {
     #[test]
     #[serial]
     fn test_missing_confluence_api_token_error() {
-        let overrides = CliOverrides {
+        let cli = Cli {
             confluence_url: Some("https://example.atlassian.net".to_string()),
             confluence_username: Some("user@example.com".to_string()),
-            ..Default::default()
+            ..cli_blank()
         };
         let saved = std::env::var("CONFLUENCE_API_TOKEN").ok();
         std::env::remove_var("CONFLUENCE_API_TOKEN");
 
-        let err = Config::load_with_home(&overrides, Some(&no_home()))
+        let err = Config::load_with_home(&cli, Some(&no_home()))
             .expect_err("should fail when CONFLUENCE_API_TOKEN missing");
 
         if let Some(v) = saved {
@@ -430,19 +392,19 @@ mod tests {
     #[test]
     #[serial]
     fn test_anthropic_api_key_optional() {
-        let overrides = CliOverrides {
+        let cli = Cli {
             confluence_url: Some("https://example.atlassian.net".to_string()),
             confluence_username: Some("user@example.com".to_string()),
-            confluence_api_token: Some("token".to_string()),
+            confluence_token: Some("token".to_string()),
             anthropic_api_key: None,
-            ..Default::default()
+            ..cli_blank()
         };
 
         // Remove ANTHROPIC_API_KEY from env so only CLI (which is None) is checked.
         let saved = std::env::var("ANTHROPIC_API_KEY").ok();
         std::env::remove_var("ANTHROPIC_API_KEY");
 
-        let result = Config::load_with_home(&overrides, Some(&no_home()));
+        let result = Config::load_with_home(&cli, Some(&no_home()));
 
         if let Some(v) = saved {
             std::env::set_var("ANTHROPIC_API_KEY", v);
@@ -463,16 +425,16 @@ mod tests {
     #[serial]
     fn test_claude_config_fallback_stub_then_error() {
         // Provide only username + token; omit URL so we reach the ~/.claude/ attempt.
-        let overrides = CliOverrides {
+        let cli = Cli {
             confluence_username: Some("user@example.com".to_string()),
-            confluence_api_token: Some("token".to_string()),
-            ..Default::default()
+            confluence_token: Some("token".to_string()),
+            ..cli_blank()
         };
         let saved = std::env::var("CONFLUENCE_URL").ok();
         std::env::remove_var("CONFLUENCE_URL");
 
         // Use no_home() — the ~/.claude/ path won't exist, so fallback returns None → Missing.
-        let err = Config::load_with_home(&overrides, Some(&no_home()))
+        let err = Config::load_with_home(&cli, Some(&no_home()))
             .expect_err("should fail after ~/.claude/ stub");
 
         if let Some(v) = saved {
@@ -493,14 +455,14 @@ mod tests {
     // Test 9: confluence_url trailing slash is stripped.
     #[test]
     fn test_confluence_url_trailing_slash_stripped() {
-        let overrides = CliOverrides {
+        let cli = Cli {
             confluence_url: Some("https://example.atlassian.net/".to_string()),
             confluence_username: Some("user@example.com".to_string()),
-            confluence_api_token: Some("token".to_string()),
-            ..Default::default()
+            confluence_token: Some("token".to_string()),
+            ..cli_blank()
         };
 
-        let config = Config::load_with_home(&overrides, Some(&no_home()))
+        let config = Config::load_with_home(&cli, Some(&no_home()))
             .expect("should load with trailing slash URL");
         assert_eq!(
             config.confluence_url,
@@ -512,14 +474,14 @@ mod tests {
     // Test 10: confluence_url must start with https:// (T-01-04 threat mitigation).
     #[test]
     fn test_confluence_url_must_be_https() {
-        let overrides = CliOverrides {
+        let cli = Cli {
             confluence_url: Some("http://example.atlassian.net".to_string()),
             confluence_username: Some("user@example.com".to_string()),
-            confluence_api_token: Some("token".to_string()),
-            ..Default::default()
+            confluence_token: Some("token".to_string()),
+            ..cli_blank()
         };
 
-        let err = Config::load_with_home(&overrides, Some(&no_home()))
+        let err = Config::load_with_home(&cli, Some(&no_home()))
             .expect_err("should reject http:// URL");
         match err {
             ConfigError::Invalid { name, reason } => {
@@ -537,17 +499,17 @@ mod tests {
     #[test]
     #[serial]
     fn test_plantuml_path_cli_override() {
-        let overrides = CliOverrides {
+        let cli = Cli {
             confluence_url: Some("https://example.atlassian.net".to_string()),
             confluence_username: Some("user@example.com".to_string()),
-            confluence_api_token: Some("token".to_string()),
+            confluence_token: Some("token".to_string()),
             plantuml_path: Some("/custom/plantuml".to_string()),
-            ..Default::default()
+            ..cli_blank()
         };
         let saved = std::env::var("PLANTUML_PATH").ok();
         std::env::remove_var("PLANTUML_PATH");
 
-        let config = Config::load_with_home(&overrides, Some(&no_home()))
+        let config = Config::load_with_home(&cli, Some(&no_home()))
             .expect("should load with plantuml_path override");
 
         match saved {
@@ -562,17 +524,17 @@ mod tests {
     #[test]
     #[serial]
     fn test_mermaid_path_cli_override() {
-        let overrides = CliOverrides {
+        let cli = Cli {
             confluence_url: Some("https://example.atlassian.net".to_string()),
             confluence_username: Some("user@example.com".to_string()),
-            confluence_api_token: Some("token".to_string()),
+            confluence_token: Some("token".to_string()),
             mermaid_path: Some("/custom/mmdc".to_string()),
-            ..Default::default()
+            ..cli_blank()
         };
         let saved = std::env::var("MERMAID_PATH").ok();
         std::env::remove_var("MERMAID_PATH");
 
-        let config = Config::load_with_home(&overrides, Some(&no_home()))
+        let config = Config::load_with_home(&cli, Some(&no_home()))
             .expect("should load with mermaid_path override");
 
         match saved {
@@ -587,18 +549,18 @@ mod tests {
     #[test]
     #[serial]
     fn test_diagram_config_defaults_when_no_override() {
-        let overrides = CliOverrides {
+        let cli = Cli {
             confluence_url: Some("https://example.atlassian.net".to_string()),
             confluence_username: Some("user@example.com".to_string()),
-            confluence_api_token: Some("token".to_string()),
-            ..Default::default()
+            confluence_token: Some("token".to_string()),
+            ..cli_blank()
         };
         let saved_p = std::env::var("PLANTUML_PATH").ok();
         let saved_m = std::env::var("MERMAID_PATH").ok();
         std::env::remove_var("PLANTUML_PATH");
         std::env::remove_var("MERMAID_PATH");
 
-        let config = Config::load_with_home(&overrides, Some(&no_home()))
+        let config = Config::load_with_home(&cli, Some(&no_home()))
             .expect("should load with default diagram paths");
 
         match saved_p {
