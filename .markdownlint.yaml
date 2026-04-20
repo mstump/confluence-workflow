@@ -3,3 +3,7 @@ default: true
 
 # MD013/line-length - Line length
 MD013: false
+
+# MD041/first-line-heading - First line should be a heading
+# Disabled for SKILL.md files that use YAML frontmatter (---)
+MD041: false
