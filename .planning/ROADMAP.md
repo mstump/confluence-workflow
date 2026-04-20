@@ -194,7 +194,7 @@ Plans:
 
 Plans:
 
-- [ ] 10-01: Fix `test_upload_command_happy_path` `#[ignore]`; add `update` command happy-path integration test using mock HTTP clients
+- [x] 10-01: Fix `test_upload_command_happy_path` `#[ignore]`; add `update` command happy-path integration test using mock HTTP clients
 - [ ] 10-02: Make `DiagramConfig::from_env()` private or remove it; verify `Converter` trait is exercised in the integration test path
 
 ## Progress
@@ -213,4 +213,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 7. Test Scaffold Completion | 2/2 | Complete | 2026-04-15 |
 | 8. DiagramConfig Waterfall and Nyquist Compliance | 2/2 | Complete | 2026-04-16 |
 | 9. Convert Waterfall Fix and Phase 08 Verification | 0/2 | Not started | - |
-| 10. Tech Debt — Integration Test Coverage and API Cleanup | 0/2 | Not started | - |
+| 10. Tech Debt — Integration Test Coverage and API Cleanup | 1/2 | In Progress|  |
