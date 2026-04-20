@@ -114,8 +114,8 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01-PLAN.md -- Cargo packaging: license decision, Cargo.toml crates.io metadata, LICENSE file, verify cargo install --path . works and binary under 15 MB
-- [ ] 05-02-PLAN.md -- Claude Code skills: confluence-update and confluence-upload SKILL.md files in new .claude/skills/ format with --output json
+- [x] 05-01-PLAN.md -- Cargo packaging: license decision, Cargo.toml crates.io metadata, LICENSE file, verify cargo install --path . works and binary under 15 MB
+- [x] 05-02-PLAN.md -- Claude Code skills: confluence-update and confluence-upload SKILL.md files in new .claude/skills/ format with --output json
 - [ ] 05-03-PLAN.md -- CI/CD: GitHub Actions release.yml with cross-platform matrix (houseabsolute/actions-rust-cross), release artifact upload on v* tags
 
 ### Phase 6: Credential Waterfall Fix
