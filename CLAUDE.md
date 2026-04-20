@@ -24,7 +24,8 @@ cargo test test_function_name
 cargo test --test cli_integration
 
 # Lint markdown (required after markdown changes)
-markdownlint --fix .
+markdownlint-cli2 --fix **/*.md
+beautiful-md -i **/*.md
 
 # CLI usage (development)
 cargo run -- update 'doc.md' 'https://domain.atlassian.net/wiki/...'
@@ -83,7 +84,7 @@ Updated Confluence page
 ## Code Quality Requirements
 
 - After modifying Rust files: `cargo test` must pass, `cargo build` must be warning-free
-- After modifying Markdown files: `markdownlint --fix .`
+- After modifying Markdown files: run `markdownlint-cli2 --fix **/*.md` then `beautiful-md -i **/*.md`
 - Pin all dependency versions in `Cargo.toml` (e.g., `package = "=1.2.3"`)
 - Do not add `impl Default` to `DiagramConfig` or `MarkdownConverter` — explicit construction
   is required to keep the config waterfall honest
