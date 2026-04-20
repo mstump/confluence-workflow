@@ -34,7 +34,7 @@ comments — everything else is infrastructure around that guarantee.
       to determine whether it survives the merge (content proximity — does the new content
       still warrant this comment at this location?)
 - [ ] Confluence REST API via reqwest + serde (no Python dependency)
-- [ ] Standalone binary distribution + Claude Code skills that delegate to it
+- ✓ Standalone binary distribution + Claude Code skills that delegate to it — Validated in Phase 05: distribution-and-claude-code-skills
 - [ ] PlantUML configurable as either jar path (`plantuml.jar`) or HTTP server URL
 
 ### Out of Scope
@@ -77,7 +77,7 @@ require a separate `ANTHROPIC_API_KEY` setup. This is a key UX improvement.
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Full Rust rewrite, clean break | Performance, single binary distribution, no Python runtime | — Pending |
+| Full Rust rewrite, clean break | Performance, single binary distribution, no Python runtime | — In Progress |
 | Drop MCP server | Complexity not justified; Claude Code skills cover the use case | — Pending |
 | Per-comment parallel evaluation | Smaller context = better LLM results; parallel = faster runtime | — Pending |
 | Anthropic-only at launch | User already has Claude Code credentials; simplest path to working | — Pending |
