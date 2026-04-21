@@ -282,6 +282,8 @@ fn test_json_output_mode_error() {
 fn test_update_command_missing_api_key() {
     let (md_dir, md_path) = temp_markdown("# Update Test\n\nContent.\n");
 
+    let fake_home = TempDir::new().expect("create fake home");
+
     let mut cmd = Command::cargo_bin("confluence-workflow").expect("binary exists");
     cmd.arg("--confluence-url")
         .arg("https://localhost:19999")
@@ -295,7 +297,9 @@ fn test_update_command_missing_api_key() {
         .env_remove("ANTHROPIC_API_KEY")
         .env_remove("CONFLUENCE_URL")
         .env_remove("CONFLUENCE_USERNAME")
-        .env_remove("CONFLUENCE_API_TOKEN");
+        .env_remove("CONFLUENCE_API_TOKEN")
+        .env("HOME", fake_home.path())
+        .current_dir(fake_home.path());
 
     let output = cmd.output().expect("run command");
 
