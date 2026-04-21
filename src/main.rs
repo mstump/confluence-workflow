@@ -1,5 +1,5 @@
 use clap::Parser;
-use confluence_agent::cli::{Cli, OutputFormat};
+use confluence_workflow::cli::{Cli, OutputFormat};
 use tracing_subscriber::{fmt, EnvFilter};
 
 /// Initialize the tracing subscriber.
@@ -30,15 +30,15 @@ async fn main() {
 
     init_tracing(verbose);
 
-    let result = confluence_agent::run(cli).await;
+    let result = confluence_workflow::run(cli).await;
 
     match output_format {
         OutputFormat::Json => {
             // D-03: In JSON mode, all output (including errors) goes to stdout
             // D-05: Silent during execution; emit JSON object on completion
             let json_value = match result {
-                Ok(ref cmd_result) => confluence_agent::result_to_json(cmd_result),
-                Err(ref e) => confluence_agent::error_to_json(e),
+                Ok(ref cmd_result) => confluence_workflow::result_to_json(cmd_result),
+                Err(ref e) => confluence_workflow::error_to_json(e),
             };
             println!("{}", json_value);
 
@@ -52,7 +52,7 @@ async fn main() {
             match result {
                 Ok(cmd_result) => {
                     match cmd_result {
-                        confluence_agent::CommandResult::Update {
+                        confluence_workflow::CommandResult::Update {
                             page_url,
                             comments_kept,
                             comments_dropped,
@@ -64,10 +64,10 @@ async fn main() {
                                 );
                             }
                         }
-                        confluence_agent::CommandResult::Upload { page_url } => {
+                        confluence_workflow::CommandResult::Upload { page_url } => {
                             println!("Uploaded to: {page_url}");
                         }
-                        confluence_agent::CommandResult::Convert { output_dir, files } => {
+                        confluence_workflow::CommandResult::Convert { output_dir, files } => {
                             println!("Converted to: {output_dir}");
                             if verbose {
                                 for f in &files {

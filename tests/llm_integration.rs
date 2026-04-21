@@ -1,5 +1,5 @@
-use confluence_agent::llm::{AnthropicClient, LlmClient};
-use confluence_agent::merge::{CommentDecision, CommentMarker};
+use confluence_workflow::llm::{AnthropicClient, LlmClient};
+use confluence_workflow::merge::{CommentDecision, CommentMarker};
 use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -300,7 +300,7 @@ async fn test_400_does_not_retry() {
         .await;
 
     match result {
-        Err(confluence_agent::error::LlmError::ApiError { status, body }) => {
+        Err(confluence_workflow::error::LlmError::ApiError { status, body }) => {
             assert_eq!(status, 400);
             assert_eq!(body, "bad request");
         }
@@ -331,7 +331,7 @@ async fn test_five_consecutive_429s_returns_rate_limit_exhausted() {
         .await;
 
     match result {
-        Err(confluence_agent::error::LlmError::RateLimitExhausted { max_retries }) => {
+        Err(confluence_workflow::error::LlmError::RateLimitExhausted { max_retries }) => {
             assert_eq!(max_retries, 5);
         }
         other => panic!("Expected RateLimitExhausted, got: {:?}", other),
