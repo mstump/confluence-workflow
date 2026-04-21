@@ -8,5 +8,6 @@
 .env
 
 # Editor and tool dirs
-.claude/
+.claude/*
+!.claude/commands/
 tmp/
