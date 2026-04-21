@@ -109,6 +109,56 @@ confluence-agent convert doc.md ./output-dir
 | `--verbose` / `-v`        | Enable debug logging             |
 | `--output human\|json`    | Output format (default: `human`) |
 
+## Claude Code Skills
+
+This repo ships a custom Claude Code skill usable from any Claude Code session opened in this
+directory.
+
+### `/confluence-publish`
+
+Publishes the currently open Markdown file to Confluence using the `update` command (LLM merge
+by default, `upload` if you request a direct overwrite).
+
+**Usage:**
+
+```text
+/confluence-publish
+/confluence-publish https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Title
+```
+
+- If a URL is passed as an argument, that page is targeted.
+- Otherwise the skill looks for a `confluence_url:` key in the file's YAML frontmatter.
+- If neither is found, the skill prompts for a URL before running.
+
+The skill confirms the file path and target URL with you before executing.
+
+## YAML Frontmatter
+
+YAML frontmatter (`---` blocks at the top of a Markdown file) is stripped during conversion and
+never appears in the published Confluence page.
+
+One frontmatter key has functional meaning for the `/confluence-publish` Claude Code skill:
+
+| Key               | Description                                                                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------- |
+| `confluence_url:` | Full URL of the target Confluence page — lets `/confluence-publish` skip the "which page?" prompt   |
+
+Example:
+
+```yaml
+---
+title: My Design Doc
+confluence_url: https://your-domain.atlassian.net/wiki/spaces/ENG/pages/12345/My+Design+Doc
+---
+
+## Introduction
+
+...
+```
+
+With this key present, running `/confluence-publish` in Claude Code automatically targets the
+correct page without prompting for a URL.
+
 ## Development
 
 ```bash
