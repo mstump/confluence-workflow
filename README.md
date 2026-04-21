@@ -26,7 +26,7 @@ This tool solves both:
 - **mermaid-cli** (optional): `mmdc` on `$PATH` — `npm install -g @mermaid-js/mermaid-cli`
 - **Confluence Cloud**: an instance with API token credentials
 - **Anthropic API key**: required only for the `update` command's LLM merge — run
-  `claude setup-token` if you have Claude installed but no API key yet
+  `claude setup-token` to print your key if you have Claude Code installed
 
 ## Installation
 
@@ -72,17 +72,11 @@ Additional env vars (no CLI flag):
 | `MERMAID_PUPPETEER_CONFIG` | —                           | Path to puppeteer config file for mmdc               |
 | `DIAGRAM_TIMEOUT`          | `30`                        | Seconds before a diagram render subprocess is killed |
 
-If you have [Claude Code](https://claude.ai/code) installed, the easiest way to get an Anthropic
-API key is:
+If you have [Claude Code](https://claude.ai/code) installed, you can get your Anthropic API key by
+running `claude setup-token` (it prints the key to stdout). Then add it to your `.env` file or
+export it as an environment variable.
 
-```bash
-claude setup-token
-```
-
-This writes `ANTHROPIC_API_KEY` to `~/.claude/settings.json`, which `confluence-workflow` picks up
-automatically via the config waterfall — no `.env` entry needed.
-
-Otherwise, the simplest setup is a `.env` file in the working directory (loaded automatically):
+The simplest setup is a `.env` file in the working directory (loaded automatically):
 
 ```env
 CONFLUENCE_URL=https://your-domain.atlassian.net
