@@ -20,7 +20,7 @@ fn test_stderr_routing() {
     let (md_dir, md_path) = temp_markdown("# Verbose Test\n\nSome content.\n");
     let out_dir = TempDir::new().expect("create output dir");
 
-    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    let mut cmd = Command::cargo_bin("confluence-workflow").expect("binary exists");
     cmd.arg("--verbose")
         .arg("convert")
         .arg(&md_path)
@@ -73,7 +73,7 @@ fn test_default_silent_mode() {
     let (md_dir, md_path) = temp_markdown("# Silent Test\n\nContent.\n");
     let out_dir = TempDir::new().expect("create output dir");
 
-    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    let mut cmd = Command::cargo_bin("confluence-workflow").expect("binary exists");
     cmd.arg("convert")
         .arg(&md_path)
         .arg(out_dir.path())

@@ -90,7 +90,7 @@ fn test_convert_command() {
     let (md_dir, md_path) = temp_markdown("# Hello World\n\nSome content.\n");
     let out_dir = TempDir::new().expect("create output dir");
 
-    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    let mut cmd = Command::cargo_bin("confluence-workflow").expect("binary exists");
     cmd.arg("convert")
         .arg(&md_path)
         .arg(out_dir.path())
@@ -149,7 +149,7 @@ fn test_convert_command() {
 fn test_convert_command_missing_file() {
     let out_dir = TempDir::new().expect("create output dir");
 
-    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    let mut cmd = Command::cargo_bin("confluence-workflow").expect("binary exists");
     cmd.arg("convert")
         .arg("/nonexistent/path/doc.md")
         .arg(out_dir.path());
@@ -172,7 +172,7 @@ fn test_json_output_mode() {
     let (md_dir, md_path) = temp_markdown("# JSON Test\n\nContent here.\n");
     let out_dir = TempDir::new().expect("create output dir");
 
-    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    let mut cmd = Command::cargo_bin("confluence-workflow").expect("binary exists");
     cmd.arg("--output")
         .arg("json")
         .arg("convert")
@@ -238,7 +238,7 @@ fn test_json_output_mode() {
 fn test_json_output_mode_error() {
     let out_dir = TempDir::new().expect("create output dir");
 
-    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    let mut cmd = Command::cargo_bin("confluence-workflow").expect("binary exists");
     cmd.arg("--output")
         .arg("json")
         .arg("convert")
@@ -282,7 +282,7 @@ fn test_json_output_mode_error() {
 fn test_update_command_missing_api_key() {
     let (md_dir, md_path) = temp_markdown("# Update Test\n\nContent.\n");
 
-    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    let mut cmd = Command::cargo_bin("confluence-workflow").expect("binary exists");
     cmd.arg("--confluence-url")
         .arg("https://localhost:19999")
         .arg("--confluence-username")
@@ -319,7 +319,7 @@ fn test_update_command_missing_api_key() {
 fn test_upload_command_missing_credentials() {
     let (md_dir, md_path) = temp_markdown("# Upload Test\n\nContent.\n");
 
-    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    let mut cmd = Command::cargo_bin("confluence-workflow").expect("binary exists");
     cmd.arg("upload")
         .arg(&md_path)
         .arg("http://localhost:19999/wiki/spaces/TEST/pages/12345/Title")
@@ -355,7 +355,7 @@ fn test_upload_command_missing_credentials() {
 fn test_upload_command_rejects_http_url() {
     let (md_dir, md_path) = temp_markdown("# Upload Test\n\nContent.\n");
 
-    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    let mut cmd = Command::cargo_bin("confluence-workflow").expect("binary exists");
     cmd.arg("--confluence-url")
         .arg("http://insecure.example.com")
         .arg("--confluence-username")
@@ -419,7 +419,7 @@ async fn test_upload_command_happy_path() {
         confluence.uri()
     );
 
-    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    let mut cmd = Command::cargo_bin("confluence-workflow").expect("binary exists");
     cmd.arg("--confluence-url")
         .arg(confluence.uri())
         .arg("--confluence-username")
@@ -472,7 +472,7 @@ fn test_convert_with_diagram_path_flags() {
     let (md_dir, md_path) = temp_markdown("# Diagram Flag Test\n\nPlain content, no diagrams.\n");
     let out_dir = TempDir::new().expect("create output dir");
 
-    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    let mut cmd = Command::cargo_bin("confluence-workflow").expect("binary exists");
     cmd.arg("--plantuml-path")
         .arg("/fake/plantuml")
         .arg("--mermaid-path")
@@ -549,7 +549,7 @@ fn test_convert_with_env_var_diagram_paths() {
     let (md_dir, md_path) = temp_markdown("# Env Var Test\n\nPlain content, no diagrams.\n");
     let out_dir = TempDir::new().expect("create output dir");
 
-    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    let mut cmd = Command::cargo_bin("confluence-workflow").expect("binary exists");
     cmd.arg("convert")
         .arg(&md_path)
         .arg(out_dir.path())
@@ -653,7 +653,7 @@ async fn test_update_command_happy_path() {
     );
 
     // --- Act: spawn the binary ---
-    let mut cmd = Command::cargo_bin("confluence-agent").expect("binary exists");
+    let mut cmd = Command::cargo_bin("confluence-workflow").expect("binary exists");
     cmd.arg("--confluence-url")
         .arg(confluence.uri())
         .arg("--confluence-username")

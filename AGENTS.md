@@ -1,6 +1,6 @@
 # About This Project
 
-`confluence-agent` is a Rust CLI tool that converts Markdown files to Confluence storage format and publishes them to a Confluence space. It uses a multi-step LLM pipeline (Merge → Reflect → Critic) to intelligently merge new content with an existing page while preserving inline comments and rendering diagrams (PlantUML, Mermaid).
+`confluence-workflow` is a Rust CLI tool that converts Markdown files to Confluence storage format and publishes them to a Confluence space. It uses a multi-step LLM pipeline (Merge → Reflect → Critic) to intelligently merge new content with an existing page while preserving inline comments and rendering diagrams (PlantUML, Mermaid).
 
 ## Codebase Structure
 
@@ -59,13 +59,13 @@ cargo test test_name
 
 ```bash
 # Merge markdown into an existing Confluence page (LLM pipeline)
-confluence-agent update doc.md https://domain.atlassian.net/wiki/...
+confluence-workflow update doc.md https://domain.atlassian.net/wiki/...
 
 # Direct upload, no LLM
-confluence-agent upload doc.md https://domain.atlassian.net/wiki/...
+confluence-workflow upload doc.md https://domain.atlassian.net/wiki/...
 
 # Local conversion only (no network)
-confluence-agent convert doc.md ./output
+confluence-workflow convert doc.md ./output
 ```
 
 ### Environment variables

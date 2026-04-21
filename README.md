@@ -33,7 +33,7 @@ This tool solves both:
 ### From crates.io (recommended)
 
 ```bash
-cargo install confluence-agent
+cargo install confluence-workflow
 ```
 
 ### From source
@@ -42,7 +42,7 @@ cargo install confluence-agent
 git clone https://github.com/mstump/confluence-workflow
 cd confluence-workflow
 cargo build --release
-# Binary is at target/release/confluence-agent
+# Binary is at target/release/confluence-workflow
 ```
 
 ## Configuration
@@ -89,7 +89,7 @@ Fetches the existing page, runs the Merge → Reflect → Critic pipeline to mer
 it, preserves inline comments, and publishes the result.
 
 ```bash
-confluence-agent update doc.md 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Title'
+confluence-workflow update doc.md 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Title'
 ```
 
 ### `upload` — direct overwrite
@@ -98,7 +98,7 @@ Converts and uploads without any LLM merge. Useful for initial page creation or 
 care about preserving existing content or comments.
 
 ```bash
-confluence-agent upload doc.md 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Title'
+confluence-workflow upload doc.md 'https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/12345/Title'
 ```
 
 ### `convert` — local conversion only
@@ -107,7 +107,7 @@ Converts Markdown to Confluence Storage Format XML and writes the output locally
 requests; useful for debugging the conversion step.
 
 ```bash
-confluence-agent convert doc.md ./output-dir
+confluence-workflow convert doc.md ./output-dir
 ```
 
 ### Global flags

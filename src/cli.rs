@@ -12,7 +12,7 @@ pub enum OutputFormat {
 
 /// Convert and upload Markdown to Confluence.
 #[derive(Debug, Parser)]
-#[command(name = "confluence-agent", about = "Convert and upload Markdown to Confluence")]
+#[command(name = "confluence-workflow", about = "Convert and upload Markdown to Confluence")]
 pub struct Cli {
     /// Confluence base URL
     #[arg(long, env = "CONFLUENCE_URL")]

@@ -12,7 +12,7 @@ categories = ["command-line-utilities"]
 exclude = ["tests/fixtures/**", ".planning/**", ".github/**"]
 
 [[bin]]
-name = "confluence-agent"
+name = "confluence-workflow"
 path = "src/main.rs"
 
 [dependencies]
