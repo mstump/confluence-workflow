@@ -1,6 +1,6 @@
 [package]
 name = "confluence-agent"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.80"
 description = "Merge Markdown files into Confluence pages while preserving inline comments"

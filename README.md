@@ -30,6 +30,14 @@ This tool solves both:
 
 ## Installation
 
+### From crates.io (recommended)
+
+```bash
+cargo install confluence-agent
+```
+
+### From source
+
 ```bash
 git clone https://github.com/mstump/confluence-workflow
 cd confluence-workflow
