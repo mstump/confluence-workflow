@@ -119,8 +119,17 @@ confluence-workflow convert doc.md ./output-dir
 
 ## Claude Code Skills
 
-This repo ships a custom Claude Code skill usable from any Claude Code session opened in this
-directory.
+This repo ships a `/confluence-publish` Claude Code slash command. Because the command is most
+useful in your own projects (where your Markdown files live), install it globally after running
+`cargo install`:
+
+```bash
+mkdir -p ~/.claude/commands
+curl -o ~/.claude/commands/confluence-publish.md \
+  https://raw.githubusercontent.com/mstump/confluence-workflow/main/.claude/commands/confluence-publish.md
+```
+
+Once installed, the command is available in every Claude Code session.
 
 ### `/confluence-publish`
 
