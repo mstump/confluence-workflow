@@ -180,6 +180,43 @@ confluence_url: https://your-domain.atlassian.net/wiki/spaces/ENG/pages/12345/My
 With this key present, running `/confluence-publish` in Claude Code automatically targets the
 correct page without prompting for a URL.
 
+## Releasing
+
+Releases are built automatically by GitHub Actions when a version tag is pushed. The workflow
+produces four binary archives and attaches them to the GitHub release:
+
+| Archive                                    | Platform                    |
+| ------------------------------------------ | --------------------------- |
+| `confluence-workflow-linux-x86_64.tar.gz`  | Linux x86\_64 (static musl) |
+| `confluence-workflow-linux-aarch64.tar.gz` | Linux aarch64 (static musl) |
+| `confluence-workflow-macos-x86_64.tar.gz`  | macOS Intel                 |
+| `confluence-workflow-macos-aarch64.tar.gz` | macOS Apple Silicon         |
+
+### Steps
+
+1. Bump the version in `Cargo.toml` and `Cargo.lock`:
+
+   ```bash
+   # Edit Cargo.toml: version = "X.Y.Z"
+   cargo build  # updates Cargo.lock
+   ```
+
+2. Commit the version bump:
+
+   ```bash
+   git add Cargo.toml Cargo.lock
+   git commit -m "chore: bump version to vX.Y.Z"
+   ```
+
+3. Tag and push:
+
+   ```bash
+   git tag vX.Y.Z
+   git push origin main vX.Y.Z
+   ```
+
+GitHub creates the release and the Actions workflow attaches all four binary archives to it.
+
 ## Development
 
 ```bash
