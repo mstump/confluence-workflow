@@ -207,17 +207,12 @@ pub async fn run(cli: Cli) -> Result<CommandResult, AppError> {
             let output_dir = output_dir.clone();
 
             // Convert does not require Confluence credentials, so Config::load is skipped.
-            // cli.plantuml_path / cli.mermaid_path are already resolved by clap-derive's
-            // #[arg(env = "...")] attribute — no second env-var read is needed.
-            // dotenvy::dotenv() was hoisted to main.rs in Phase 09, so .env values are
-            // visible to clap at Cli::parse() time.
+            // cli.plantuml_path is already resolved by clap-derive's #[arg(env = "...")]
+            // attribute. Mermaid renders in-process via mermaid-core, no path needed.
             let markdown = std::fs::read_to_string(&markdown_path).map_err(AppError::Io)?;
             let diagram_config = DiagramConfig {
                 plantuml_path: cli.plantuml_path.clone()
                     .unwrap_or_else(|| "plantuml".to_string()),
-                mermaid_path: cli.mermaid_path.clone()
-                    .unwrap_or_else(|| "mmdc".to_string()),
-                mermaid_puppeteer_config: std::env::var("MERMAID_PUPPETEER_CONFIG").ok(),
                 timeout_secs: std::env::var("DIAGRAM_TIMEOUT")
                     .ok()
                     .and_then(|v| v.parse().ok())

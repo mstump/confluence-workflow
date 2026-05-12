@@ -10,13 +10,8 @@ pub struct DiagramConfig {
     /// - "/path/to/plantuml.jar" (JAR mode -- will invoke as java -jar <path>)
     pub plantuml_path: String,
 
-    /// Path to mermaid-cli executable (default: "mmdc")
-    pub mermaid_path: String,
-
-    /// Optional puppeteer config file for mermaid-cli
-    pub mermaid_puppeteer_config: Option<String>,
-
-    /// Timeout in seconds for each diagram render subprocess (default: 30)
+    /// Timeout in seconds for each diagram render subprocess (default: 30).
+    /// Applies to PlantUML only; Mermaid renders in-process via mermaid-core.
     pub timeout_secs: u64,
 }
 
@@ -112,10 +107,6 @@ impl Config {
         // No ~/.claude/ tier per D-03/D-05 — credentials only get that tier.
         let plantuml_path = cli.plantuml_path.clone()
             .unwrap_or_else(|| "plantuml".to_string());
-        let mermaid_path = cli.mermaid_path.clone()
-            .unwrap_or_else(|| "mmdc".to_string());
-
-        let mermaid_puppeteer_config = std::env::var("MERMAID_PUPPETEER_CONFIG").ok();
         let timeout_secs = std::env::var("DIAGRAM_TIMEOUT")
             .ok()
             .and_then(|v| v.parse().ok())
@@ -123,8 +114,6 @@ impl Config {
 
         let diagram_config = DiagramConfig {
             plantuml_path,
-            mermaid_path,
-            mermaid_puppeteer_config,
             timeout_secs,
         };
 
@@ -245,7 +234,6 @@ mod tests {
             confluence_token: None,
             anthropic_api_key: None,
             plantuml_path: None,
-            mermaid_path: None,
             verbose: false,
             output: OutputFormat::Human,
             command: Commands::Convert {
@@ -521,32 +509,8 @@ mod tests {
         assert_eq!(config.diagram_config.plantuml_path, "/custom/plantuml");
     }
 
-    // Test 12: --mermaid-path CLI override propagates through waterfall into diagram_config.
-    #[test]
-    #[serial]
-    fn test_mermaid_path_cli_override() {
-        let cli = Cli {
-            confluence_url: Some("https://example.atlassian.net".to_string()),
-            confluence_username: Some("user@example.com".to_string()),
-            confluence_token: Some("token".to_string()),
-            mermaid_path: Some("/custom/mmdc".to_string()),
-            ..cli_blank()
-        };
-        let saved = std::env::var("MERMAID_PATH").ok();
-        std::env::remove_var("MERMAID_PATH");
-
-        let config = Config::load_with_home(&cli, Some(&no_home()))
-            .expect("should load with mermaid_path override");
-
-        match saved {
-            Some(v) => std::env::set_var("MERMAID_PATH", v),
-            None => std::env::remove_var("MERMAID_PATH"),
-        }
-
-        assert_eq!(config.diagram_config.mermaid_path, "/custom/mmdc");
-    }
-
-    // Test 13: When no CLI override or env var is set, diagram paths default to "plantuml"/"mmdc".
+    // Test 13: When no CLI override or env var is set, plantuml_path defaults to "plantuml".
+    // (Mermaid no longer has a path; it's rendered in-process via mermaid-core.)
     #[test]
     #[serial]
     fn test_diagram_config_defaults_when_no_override() {
@@ -557,9 +521,7 @@ mod tests {
             ..cli_blank()
         };
         let saved_p = std::env::var("PLANTUML_PATH").ok();
-        let saved_m = std::env::var("MERMAID_PATH").ok();
         std::env::remove_var("PLANTUML_PATH");
-        std::env::remove_var("MERMAID_PATH");
 
         let config = Config::load_with_home(&cli, Some(&no_home()))
             .expect("should load with default diagram paths");
@@ -568,12 +530,7 @@ mod tests {
             Some(v) => std::env::set_var("PLANTUML_PATH", v),
             None => std::env::remove_var("PLANTUML_PATH"),
         }
-        match saved_m {
-            Some(v) => std::env::set_var("MERMAID_PATH", v),
-            None => std::env::remove_var("MERMAID_PATH"),
-        }
 
         assert_eq!(config.diagram_config.plantuml_path, "plantuml");
-        assert_eq!(config.diagram_config.mermaid_path, "mmdc");
     }
 }
