@@ -118,19 +118,30 @@ impl ConfluenceApi for ConfluenceClient {
         content: Vec<u8>,
         content_type: &str,
     ) -> Result<(), ConfluenceError> {
-        let url = format!(
-            "{}/rest/api/content/{}/child/attachment",
-            self.base_url, page_id
-        );
+        // POST /child/attachment creates a new attachment but returns 400 if one with
+        // the same filename already exists. To make `upload` idempotent across reruns,
+        // look up any existing attachment by filename first and PUT to its /data
+        // endpoint to update; otherwise POST to create.
+        let existing_id = self.find_attachment_id(page_id, filename).await?;
 
         let file_part = reqwest::multipart::Part::bytes(content)
             .file_name(filename.to_string())
             .mime_str(content_type)
             .map_err(|e| ConfluenceError::Multipart(e.to_string()))?;
-
         let form = reqwest::multipart::Form::new()
             .part("file", file_part)
             .text("minorEdit", "true");
+
+        let url = match &existing_id {
+            Some(id) => format!(
+                "{}/rest/api/content/{}/child/attachment/{}/data",
+                self.base_url, page_id, id
+            ),
+            None => format!(
+                "{}/rest/api/content/{}/child/attachment",
+                self.base_url, page_id
+            ),
+        };
 
         let response = self
             .client
@@ -149,6 +160,56 @@ impl ConfluenceApi for ConfluenceClient {
                 filename: filename.to_string(),
                 status: response.status().as_u16(),
             })
+        }
+    }
+}
+
+impl ConfluenceClient {
+    /// Look up an existing attachment on the page by filename.
+    /// Returns the attachment's content ID if found, None if no such attachment exists.
+    ///
+    /// Surfaces auth/permission/server errors as `ConfluenceError` rather than swallowing
+    /// them — otherwise a 401/403 on lookup would silently fall through to POST-create and
+    /// the caller would see a confusing 400 instead of the real failure.
+    async fn find_attachment_id(
+        &self,
+        page_id: &str,
+        filename: &str,
+    ) -> Result<Option<String>, ConfluenceError> {
+        // Filenames in this workflow are always of the form "diagram_N.svg" — URL-safe — so
+        // no percent-encoding is needed here. If we ever support arbitrary filenames the
+        // querystring should be encoded.
+        let url = format!(
+            "{}/rest/api/content/{}/child/attachment?filename={}&limit=1",
+            self.base_url, page_id, filename
+        );
+        let response = self
+            .client
+            .get(&url)
+            .header("Authorization", &self.auth_header)
+            .send()
+            .await?;
+
+        match response.status().as_u16() {
+            200 => {
+                let body: serde_json::Value = response
+                    .json()
+                    .await
+                    .map_err(ConfluenceError::Deserialize)?;
+                let id = body
+                    .get("results")
+                    .and_then(|r| r.as_array())
+                    .and_then(|arr| arr.first())
+                    .and_then(|first| first.get("id"))
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+                Ok(id)
+            }
+            // The page itself doesn't exist — no attachments to look up, but this is
+            // a real "not found" the caller should hear about. Propagate.
+            404 => Err(ConfluenceError::PageNotFound(page_id.to_string())),
+            401 => Err(ConfluenceError::Unauthorized),
+            other => Err(ConfluenceError::UnexpectedStatus(other)),
         }
     }
 }
@@ -378,9 +439,41 @@ mod tests {
     #[tokio::test]
     async fn test_upload_attachment_sends_x_atlassian_token_header() {
         let mock_server = MockServer::start().await;
+        // upload_attachment first GETs to check whether the attachment already exists;
+        // return an empty results list so the create path runs.
+        Mock::given(method("GET"))
+            .and(path("/rest/api/content/12345/child/attachment"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({"results":[]})))
+            .mount(&mock_server)
+            .await;
         Mock::given(method("POST"))
             .and(path("/rest/api/content/12345/child/attachment"))
             .and(header("X-Atlassian-Token", "nocheck"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({"results":[]})))
+            .mount(&mock_server)
+            .await;
+
+        let client = ConfluenceClient::new(&mock_server.uri(), "user", "token");
+        client
+            .upload_attachment("12345", "diagram.svg", b"<svg/>".to_vec(), "image/svg+xml")
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_upload_attachment_updates_existing_via_data_endpoint() {
+        let mock_server = MockServer::start().await;
+        // Lookup returns one existing attachment with id "att-99".
+        Mock::given(method("GET"))
+            .and(path("/rest/api/content/12345/child/attachment"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "results": [{"id": "att-99"}]
+            })))
+            .mount(&mock_server)
+            .await;
+        // The PUT-via-POST to /data must be hit; the bare POST must not.
+        Mock::given(method("POST"))
+            .and(path("/rest/api/content/12345/child/attachment/att-99/data"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({"results":[]})))
             .mount(&mock_server)
             .await;
