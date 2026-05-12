@@ -4,13 +4,11 @@ use crate::error::ConversionError;
 /// Test-scope DiagramConfig literal — replaces the deleted Default impls on
 /// DiagramConfig and MarkdownConverter (removed in Phase 10-02, D-04).
 /// Values match the former defaults: plantuml_path="plantuml",
-/// mermaid_path="mmdc", no puppeteer config, 30-sec timeout.
+/// 30-sec PlantUML timeout. Mermaid renders in-process via mermaid-core, no path field.
 /// Mirrors the pattern used by `config_with_defaults` in `src/converter/diagrams.rs`.
 fn test_diagram_config() -> crate::config::DiagramConfig {
     crate::config::DiagramConfig {
         plantuml_path: "plantuml".to_string(),
-        mermaid_path: "mmdc".to_string(),
-        mermaid_puppeteer_config: None,
         timeout_secs: 30,
     }
 }
@@ -166,36 +164,18 @@ async fn test_plantuml_rendering_integration() {
 }
 
 #[tokio::test]
-async fn test_mermaid_rendering_integration() {
-    // Skip if mmdc not available
-    if std::process::Command::new("mmdc")
-        .arg("--version")
-        .output()
-        .is_err()
-    {
-        eprintln!("Skipping: mmdc not installed");
-        return;
-    }
+async fn test_mermaid_rendering_in_process() {
+    // mermaid-core is a compile-time dependency — no installation, no skip path.
     let config = test_diagram_config();
     let converter = MarkdownConverter::new(config);
     let md = include_str!("../../tests/fixtures/mermaid_diagram.md");
-    let result = converter.convert(md).await;
-    match result {
-        Ok(result) => {
-            assert_eq!(result.attachments.len(), 1);
-            assert_eq!(result.attachments[0].filename, "diagram_0.svg");
-            assert_eq!(result.attachments[0].content_type, "image/svg+xml");
-            assert!(!result.attachments[0].content.is_empty());
-            assert!(result.storage_xml.contains(r#"ri:filename="diagram_0.svg""#));
-            assert!(!result.storage_xml.contains("DIAGRAM_PLACEHOLDER"));
-        }
-        Err(ConversionError::DiagramError { message, .. })
-            if message.contains("Chrome") || message.contains("puppeteer") =>
-        {
-            eprintln!("Skipping: mmdc requires Chrome/puppeteer setup");
-        }
-        Err(e) => panic!("Unexpected error: {e}"),
-    }
+    let result = converter.convert(md).await.expect("conversion should succeed");
+    assert_eq!(result.attachments.len(), 1);
+    assert_eq!(result.attachments[0].filename, "diagram_0.svg");
+    assert_eq!(result.attachments[0].content_type, "image/svg+xml");
+    assert!(!result.attachments[0].content.is_empty());
+    assert!(result.storage_xml.contains(r#"ri:filename="diagram_0.svg""#));
+    assert!(!result.storage_xml.contains("DIAGRAM_PLACEHOLDER"));
 }
 
 #[tokio::test]

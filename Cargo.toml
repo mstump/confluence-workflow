@@ -31,13 +31,16 @@ base64 = "0.22"
 async-trait = "0.1"
 regex = "1"
 pulldown-cmark = { version = "0.13", default-features = false }
-tempfile = "3"
+# Pure-Rust mermaid renderer — used in-process, no subprocess.
+# Default features (png, ascii) are disabled; we only need SVG output.
+mermaid-core = { version = "0.1", default-features = false }
 
 [dev-dependencies]
 wiremock = "0.6"
 insta = { version = "1", features = ["json"] }
 assert_cmd = "2"
 serial_test = "3.4.0"
+tempfile = "3"
 
 [profile.release]
 opt-level = "z"

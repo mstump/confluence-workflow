@@ -23,7 +23,7 @@ This tool solves both:
 
 - **Rust** (1.80+): [rustup.rs](https://rustup.rs)
 - **PlantUML** (optional): `plantuml` CLI on `$PATH`, or a path to `plantuml.jar`
-- **mermaid-cli** (optional): `mmdc` on `$PATH` — `npm install -g @mermaid-js/mermaid-cli`
+- **Mermaid**: rendered in-process via the [`mermaid-core`](https://crates.io/crates/mermaid-core) crate. No external binary or installation needed.
 - **Confluence Cloud**: an instance with API token credentials
 - **Anthropic API key**: required only for the `update` command's LLM merge — run
   `claude setup-token` to print your key if you have Claude Code installed
@@ -61,7 +61,6 @@ Auth credentials (`CONFLUENCE_URL`, `CONFLUENCE_USERNAME`, `CONFLUENCE_API_TOKEN
 | `--confluence-api-token` | `CONFLUENCE_API_TOKEN` | Yes           | Atlassian API token                                |
 | `--anthropic-api-key`    | `ANTHROPIC_API_KEY`    | `update` only | Anthropic API key                                  |
 | `--plantuml-path`        | `PLANTUML_PATH`        | No            | Path to plantuml (default: `plantuml`)             |
-| `--mermaid-path`         | `MERMAID_PATH`         | No            | Path to mmdc (default: `mmdc`)                     |
 
 Additional env vars (no CLI flag):
 
@@ -69,7 +68,6 @@ Additional env vars (no CLI flag):
 | -------------------------- | --------------------------- | ---------------------------------------------------- |
 | `ANTHROPIC_MODEL`          | `claude-haiku-4-5-20251001` | Model used for the LLM pipeline                      |
 | `ANTHROPIC_CONCURRENCY`    | `5`                         | Max concurrent LLM requests                          |
-| `MERMAID_PUPPETEER_CONFIG` | —                           | Path to puppeteer config file for mmdc               |
 | `DIAGRAM_TIMEOUT`          | `30`                        | Seconds before a diagram render subprocess is killed |
 
 If you have [Claude Code](https://claude.ai/code) installed, you can get your Anthropic API key by

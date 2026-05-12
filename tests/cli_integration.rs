@@ -479,8 +479,6 @@ fn test_convert_with_diagram_path_flags() {
     let mut cmd = Command::cargo_bin("confluence-workflow").expect("binary exists");
     cmd.arg("--plantuml-path")
         .arg("/fake/plantuml")
-        .arg("--mermaid-path")
-        .arg("/fake/mmdc")
         .arg("convert")
         .arg(&md_path)
         .arg(out_dir.path())
@@ -488,15 +486,14 @@ fn test_convert_with_diagram_path_flags() {
         .env_remove("CONFLUENCE_USERNAME")
         .env_remove("CONFLUENCE_API_TOKEN")
         // Override any env-var defaults so the test is deterministic
-        .env_remove("PLANTUML_PATH")
-        .env_remove("MERMAID_PATH");
+        .env_remove("PLANTUML_PATH");
 
     let output = cmd.output().expect("run command");
 
-    // Flags must not produce "unexpected argument" — exit code must be 0
+    // Flag must not produce "unexpected argument" — exit code must be 0
     assert!(
         output.status.success(),
-        "convert with --plantuml-path and --mermaid-path should exit 0; stderr: {}",
+        "convert with --plantuml-path should exit 0; stderr: {}",
         String::from_utf8_lossy(&output.stderr)
     );
 
@@ -533,20 +530,14 @@ fn test_convert_with_diagram_path_flags() {
 }
 
 // ---------------------------------------------------------------------------
-// SCAF-03 env-var tier: PLANTUML_PATH / MERMAID_PATH env vars wired through
-// clap-derive's env= attribute into cli.plantuml_path / cli.mermaid_path,
-// then into DiagramConfig in the convert arm. Closes the gap where
-// test_convert_with_diagram_path_flags only covered the CLI-flag tier.
-// Per 09-CONTEXT.md D-06.
+// SCAF-03 env-var tier: PLANTUML_PATH wired through clap-derive's env=
+// attribute into cli.plantuml_path, then into DiagramConfig in the convert arm.
+// Closes the gap where test_convert_with_diagram_path_flags only covered the
+// CLI-flag tier. Per 09-CONTEXT.md D-06.
 // ---------------------------------------------------------------------------
 
-/// convert command honors PLANTUML_PATH and MERMAID_PATH env vars when no
-/// CLI flag is provided (SCAF-03 env-var tier, D-06).
-///
-/// Clap-derive's `#[arg(long, env = "PLANTUML_PATH")]` resolves the env var
-/// onto `cli.plantuml_path` at `Cli::parse()` time; the convert arm reads
-/// that already-resolved value. This test proves end-to-end that setting
-/// the env var (without passing the flag) reaches the DiagramConfig.
+/// convert command honors PLANTUML_PATH env var when no CLI flag is provided
+/// (SCAF-03 env-var tier, D-06).
 #[test]
 #[serial]
 fn test_convert_with_env_var_diagram_paths() {
@@ -561,9 +552,8 @@ fn test_convert_with_env_var_diagram_paths() {
         .env_remove("CONFLUENCE_URL")
         .env_remove("CONFLUENCE_USERNAME")
         .env_remove("CONFLUENCE_API_TOKEN")
-        // Set the env-var tier — NOT CLI flags (no --plantuml-path / --mermaid-path args)
-        .env("PLANTUML_PATH", "/fake/plantuml-via-env")
-        .env("MERMAID_PATH", "/fake/mmdc-via-env");
+        // Set the env-var tier — NOT CLI flag
+        .env("PLANTUML_PATH", "/fake/plantuml-via-env");
 
     let output = cmd.output().expect("run command");
 
@@ -572,7 +562,7 @@ fn test_convert_with_env_var_diagram_paths() {
     // into the convert arm without error.
     assert!(
         output.status.success(),
-        "convert with PLANTUML_PATH / MERMAID_PATH env vars should exit 0; stderr: {}",
+        "convert with PLANTUML_PATH env var should exit 0; stderr: {}",
         String::from_utf8_lossy(&output.stderr)
     );
 

@@ -79,94 +79,32 @@ pub async fn render_plantuml(
     Ok(output.stdout)
 }
 
-/// Render Mermaid content to SVG bytes via mermaid-cli (mmdc).
+/// Render Mermaid content to SVG bytes via the `mermaid-core` library (in-process).
 ///
-/// Uses tempfile for input/output because mmdc requires file paths.
-pub async fn render_mermaid(
-    content: &str,
-    config: &DiagramConfig,
-) -> Result<Vec<u8>, ConversionError> {
-    let input_file = tempfile::Builder::new()
-        .suffix(".mmd")
-        .tempfile()
+/// Synchronous: no subprocess, no temp files, no async wait. Diagrams in this
+/// workflow are small enough that the CPU work completes well under a frame's
+/// worth of time; spawn_blocking would be over-engineering. The caller is
+/// already async but doesn't need to .await this.
+pub fn render_mermaid(content: &str) -> Result<Vec<u8>, ConversionError> {
+    let output = mermaid_core::render(content, &mermaid_core::RenderConfig::default())
         .map_err(|e| ConversionError::DiagramError {
             diagram_type: "mermaid".to_string(),
-            message: format!("Failed to create temp file: {e}"),
+            message: format!("mermaid-core failed: {e}"),
         })?;
 
-    std::fs::write(input_file.path(), content).map_err(|e| ConversionError::DiagramError {
+    let svg = output.into_svg().map_err(|e| ConversionError::DiagramError {
         diagram_type: "mermaid".to_string(),
-        message: format!("Failed to write temp file: {e}"),
+        message: format!("mermaid-core returned non-SVG output: {e}"),
     })?;
 
-    let output_path = input_file.path().with_extension("svg");
-
-    let mut cmd = Command::new(&config.mermaid_path);
-    cmd.args([
-        "-i",
-        &input_file.path().to_string_lossy(),
-        "-o",
-        &output_path.to_string_lossy(),
-        "-e",
-        "svg",
-    ]);
-
-    if let Some(ref puppeteer_config) = config.mermaid_puppeteer_config {
-        cmd.args(["--puppeteerConfigFile", puppeteer_config]);
-    }
-
-    cmd.stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
-
-    let timeout_result = tokio::time::timeout(
-        Duration::from_secs(config.timeout_secs),
-        cmd.output(),
-    )
-    .await;
-
-    let output = match timeout_result {
-        Err(_) => {
-            // Timeout — attempt best-effort cleanup of any partial output file
-            let _ = std::fs::remove_file(&output_path);
-            return Err(ConversionError::DiagramTimeout {
-                diagram_type: "mermaid".to_string(),
-                timeout_secs: config.timeout_secs,
-            });
-        }
-        Ok(res) => res.map_err(|e| ConversionError::DiagramError {
-            diagram_type: "mermaid".to_string(),
-            message: format!("Mermaid process failed: {e}"),
-        })?,
-    };
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
+    if svg.is_empty() {
         return Err(ConversionError::DiagramError {
             diagram_type: "mermaid".to_string(),
-            message: format!("mmdc exited with {}: {stderr}", output.status),
+            message: "mermaid-core produced empty SVG output".to_string(),
         });
     }
 
-    let svg_bytes = std::fs::read(&output_path).map_err(|e| {
-        // Clean up before returning so the file is not leaked on this error path.
-        let _ = std::fs::remove_file(&output_path);
-        ConversionError::DiagramError {
-            diagram_type: "mermaid".to_string(),
-            message: format!("Failed to read SVG output: {e}"),
-        }
-    })?;
-
-    // Clean up output file (input auto-cleaned by tempfile)
-    let _ = std::fs::remove_file(&output_path);
-
-    if svg_bytes.is_empty() {
-        return Err(ConversionError::DiagramError {
-            diagram_type: "mermaid".to_string(),
-            message: "mmdc produced empty SVG output".to_string(),
-        });
-    }
-
-    Ok(svg_bytes)
+    Ok(svg.into_bytes())
 }
 
 #[cfg(test)]
@@ -177,8 +115,6 @@ mod tests {
     fn config_with_defaults() -> DiagramConfig {
         DiagramConfig {
             plantuml_path: "plantuml".to_string(),
-            mermaid_path: "mmdc".to_string(),
-            mermaid_puppeteer_config: None,
             timeout_secs: 30,
         }
     }
@@ -199,14 +135,12 @@ mod tests {
         }
     }
 
-    #[tokio::test]
-    async fn test_render_mermaid_invalid_binary_returns_error() {
-        let config = DiagramConfig {
-            mermaid_path: "nonexistent-mmdc-binary-xyz".to_string(),
-            ..config_with_defaults()
-        };
-        let result = render_mermaid("graph TD\n  A --> B", &config).await;
-        assert!(result.is_err());
+    #[test]
+    fn test_render_mermaid_invalid_syntax_returns_error() {
+        // With the in-process renderer, the only way `render_mermaid` can fail
+        // is invalid mermaid syntax. Garbage in → DiagramError out.
+        let result = render_mermaid("this is not mermaid syntax !!!");
+        assert!(result.is_err(), "expected error from invalid mermaid syntax");
         match result.unwrap_err() {
             ConversionError::DiagramError { diagram_type, .. } => {
                 assert_eq!(diagram_type, "mermaid");
@@ -236,31 +170,13 @@ mod tests {
         assert!(svg_str.contains("<svg"), "Output should contain <svg tag");
     }
 
-    #[tokio::test]
-    async fn test_render_mermaid_integration() {
-        // Skip if mmdc not available
-        if std::process::Command::new("mmdc")
-            .arg("--version")
-            .output()
-            .is_err()
-        {
-            eprintln!("Skipping: mmdc not installed");
-            return;
-        }
-        let config = config_with_defaults();
-        let result = render_mermaid("graph TD\n    A[Start] --> B[End]", &config).await;
-        match result {
-            Ok(svg) => {
-                assert!(!svg.is_empty(), "SVG output should not be empty");
-                let svg_str = String::from_utf8_lossy(&svg);
-                assert!(svg_str.contains("<svg"), "Output should contain <svg tag");
-            }
-            Err(ConversionError::DiagramError { message, .. })
-                if message.contains("Chrome") || message.contains("puppeteer") =>
-            {
-                eprintln!("Skipping: mmdc requires Chrome/puppeteer setup");
-            }
-            Err(e) => panic!("Unexpected error: {e}"),
-        }
+    #[test]
+    fn test_render_mermaid_basic() {
+        // mermaid-core is a compile-time dep — no installation, no skip path.
+        let svg = render_mermaid("graph TD\n    A[Start] --> B[End]")
+            .expect("render_mermaid should succeed for a basic flowchart");
+        assert!(!svg.is_empty(), "SVG output should not be empty");
+        let svg_str = String::from_utf8_lossy(&svg);
+        assert!(svg_str.contains("<svg"), "Output should contain <svg tag");
     }
 }

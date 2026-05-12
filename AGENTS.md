@@ -78,6 +78,5 @@ confluence-workflow convert doc.md ./output
 | `CONFLUENCE_USERNAME`   | Atlassian account email                                 |
 | `CONFLUENCE_API_TOKEN`  | Atlassian API token                                     |
 | `PLANTUML_PATH`         | Path to `plantuml` binary (default: `plantuml`)         |
-| `MERMAID_PATH`          | Path to `mmdc` binary (default: `mmdc`)                 |
 | `DIAGRAM_TIMEOUT`       | Subprocess timeout seconds (default: 30)                |
 | `ANTHROPIC_CONCURRENCY` | Max parallel LLM requests (default: 5, min: 1, max: 50) |

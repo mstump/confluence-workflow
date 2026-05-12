@@ -57,7 +57,7 @@ impl Converter for MarkdownConverter {
                     diagrams::render_plantuml(&block.content, &self.diagram_config).await?
                 }
                 "mermaid" => {
-                    diagrams::render_mermaid(&block.content, &self.diagram_config).await?
+                    diagrams::render_mermaid(&block.content)?
                 }
                 other => {
                     return Err(ConversionError::DiagramError {
